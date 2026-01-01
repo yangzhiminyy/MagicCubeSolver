@@ -89,7 +89,7 @@ function rotateR(state: CubeState): CubeState {
   const newState = JSON.parse(JSON.stringify(state)) as CubeState
   newState.R = rotateFaceClockwise(state.R)
   
-  const temp = [state.U[2][2], state.U[1][2], state.U[0][2]]
+  const temp = [state.U[0][2], state.U[1][2], state.U[2][2]]
   // U的右列 ← F的右列（直接对应，不需要反向）
   newState.U[0][2] = state.F[0][2]
   newState.U[1][2] = state.F[1][2]
@@ -261,9 +261,9 @@ function rotateB(state: CubeState): CubeState {
   newState.D[2][2] = state.L[2][0]
   
   // L的左列 ← temp（从上到下，不反向写入）
-  newState.L[0][0] = temp[2]
+  newState.L[0][0] = temp[0]
   newState.L[1][0] = temp[1]
-  newState.L[2][0] = temp[0]
+  newState.L[2][0] = temp[2]
   
   return newState
 }
