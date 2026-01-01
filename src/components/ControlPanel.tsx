@@ -1,0 +1,120 @@
+import { Move } from '../utils/cubeTypes'
+import './ControlPanel.css'
+
+interface ControlPanelProps {
+  onScramble: () => void
+  onSolve: () => void
+  onMove: (move: Move) => void
+  onStepForward: () => void
+  onStepBackward: () => void
+  isAnimating: boolean
+  solution: Move[]
+  currentStep: number
+}
+
+export default function ControlPanel({
+  onScramble,
+  onSolve,
+  onMove,
+  onStepForward,
+  onStepBackward,
+  isAnimating,
+  solution,
+  currentStep,
+}: ControlPanelProps) {
+  const moves: Move[] = [
+    'R', "R'", 'R2',
+    'L', "L'", 'L2',
+    'U', "U'", 'U2',
+    'D', "D'", 'D2',
+    'F', "F'", 'F2',
+    'B', "B'", 'B2',
+  ]
+
+  return (
+    <div className="control-panel">
+      <div className="panel-section">
+        <h2>魔方控制</h2>
+        <div className="button-group">
+          <button 
+            className="btn btn-primary" 
+            onClick={onScramble}
+            disabled={isAnimating}
+          >
+            打乱
+          </button>
+          <button 
+            className="btn btn-primary" 
+            onClick={onSolve}
+            disabled={isAnimating}
+          >
+            求解
+          </button>
+        </div>
+      </div>
+
+      <div className="panel-section">
+        <h3>手动操作</h3>
+        <div className="move-buttons">
+          {moves.map((move) => (
+            <button
+              key={move}
+              className="btn btn-move"
+              onClick={() => onMove(move)}
+              disabled={isAnimating}
+            >
+              {move}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {solution.length > 0 && (
+        <div className="panel-section">
+          <h3>求解步骤</h3>
+          <div className="solution-info">
+            <p>总步数: {solution.length}</p>
+            <p>当前步: {currentStep} / {solution.length}</p>
+          </div>
+          <div className="button-group">
+            <button
+              className="btn btn-secondary"
+              onClick={onStepBackward}
+              disabled={isAnimating || currentStep === 0}
+            >
+              上一步
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={onStepForward}
+              disabled={isAnimating || currentStep >= solution.length}
+            >
+              下一步
+            </button>
+          </div>
+          <div className="solution-steps">
+            <div className="steps-list">
+              {solution.map((move, index) => (
+                <span
+                  key={index}
+                  className={`step ${index < currentStep ? 'completed' : ''} ${index === currentStep ? 'current' : ''}`}
+                >
+                  {move}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="panel-section">
+        <h3>操作提示</h3>
+        <ul className="tips">
+          <li>鼠标左键拖拽：旋转视角</li>
+          <li>鼠标滚轮：缩放</li>
+          <li>点击按钮：旋转魔方</li>
+        </ul>
+      </div>
+    </div>
+  )
+}
