@@ -12,6 +12,14 @@ function App() {
   const [isAnimating, setIsAnimating] = useState(false)
   const [solution, setSolution] = useState<Move[]>([])
   const [currentStep, setCurrentStep] = useState(0)
+  const [showCoordinates, setShowCoordinates] = useState({
+    U: false,
+    D: false,
+    F: false,
+    B: false,
+    L: false,
+    R: false,
+  })
 
   const handleScramble = () => {
     if (isAnimating) return
@@ -91,7 +99,7 @@ function App() {
           <ambientLight intensity={0.5} />
           <directionalLight position={[10, 10, 5]} intensity={1} />
           <pointLight position={[-10, -10, -10]} intensity={0.5} />
-          <RubiksCube cubeState={cubeState} />
+          <RubiksCube cubeState={cubeState} showCoordinates={showCoordinates} />
           <OrbitControls enablePan={false} minDistance={3} maxDistance={15} />
         </Canvas>
       </div>
@@ -104,6 +112,13 @@ function App() {
         isAnimating={isAnimating}
         solution={solution}
         currentStep={currentStep}
+        showCoordinates={showCoordinates}
+        onToggleCoordinate={(face) => {
+          setShowCoordinates(prev => ({
+            ...prev,
+            [face]: !prev[face as keyof typeof prev]
+          }))
+        }}
       />
     </div>
   )

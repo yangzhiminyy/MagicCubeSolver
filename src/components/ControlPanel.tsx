@@ -10,6 +10,15 @@ interface ControlPanelProps {
   isAnimating: boolean
   solution: Move[]
   currentStep: number
+  showCoordinates: {
+    U: boolean
+    D: boolean
+    F: boolean
+    B: boolean
+    L: boolean
+    R: boolean
+  }
+  onToggleCoordinate: (face: 'U' | 'D' | 'F' | 'B' | 'L' | 'R') => void
 }
 
 export default function ControlPanel({
@@ -21,6 +30,8 @@ export default function ControlPanel({
   isAnimating,
   solution,
   currentStep,
+  showCoordinates,
+  onToggleCoordinate,
 }: ControlPanelProps) {
   const moves: Move[] = [
     'R', "R'", 'R2',
@@ -106,6 +117,60 @@ export default function ControlPanel({
           </div>
         </div>
       )}
+
+      <div className="panel-section">
+        <h3>坐标显示</h3>
+        <div className="coordinate-controls">
+          <label className="coordinate-switch">
+            <input
+              type="checkbox"
+              checked={showCoordinates.U}
+              onChange={() => onToggleCoordinate('U')}
+            />
+            <span>U面（上）</span>
+          </label>
+          <label className="coordinate-switch">
+            <input
+              type="checkbox"
+              checked={showCoordinates.D}
+              onChange={() => onToggleCoordinate('D')}
+            />
+            <span>D面（下）</span>
+          </label>
+          <label className="coordinate-switch">
+            <input
+              type="checkbox"
+              checked={showCoordinates.F}
+              onChange={() => onToggleCoordinate('F')}
+            />
+            <span>F面（前）</span>
+          </label>
+          <label className="coordinate-switch">
+            <input
+              type="checkbox"
+              checked={showCoordinates.B}
+              onChange={() => onToggleCoordinate('B')}
+            />
+            <span>B面（后）</span>
+          </label>
+          <label className="coordinate-switch">
+            <input
+              type="checkbox"
+              checked={showCoordinates.L}
+              onChange={() => onToggleCoordinate('L')}
+            />
+            <span>L面（左）</span>
+          </label>
+          <label className="coordinate-switch">
+            <input
+              type="checkbox"
+              checked={showCoordinates.R}
+              onChange={() => onToggleCoordinate('R')}
+            />
+            <span>R面（右）</span>
+          </label>
+        </div>
+      </div>
 
       <div className="panel-section">
         <h3>操作提示</h3>
