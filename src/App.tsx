@@ -12,6 +12,8 @@ function App() {
   const [isAnimating, setIsAnimating] = useState(false)
   const [solution, setSolution] = useState<Move[]>([])
   const [currentStep, setCurrentStep] = useState(0)
+  const [scrambleMoves, setScrambleMoves] = useState<Move[]>([]) // 记录打乱序列
+  const [moveHistory, setMoveHistory] = useState<Move[]>([]) // 记录手动操作历史
   const [showCoordinates, setShowCoordinates] = useState({
     U: false,
     D: false,
@@ -38,6 +40,8 @@ function App() {
     setCubeState(newState)
     setSolution([])
     setCurrentStep(0)
+    setScrambleMoves(moves) // 保存打乱序列
+    setMoveHistory([]) // 清空手动操作历史
   }
 
   const handleSolve = async () => {
@@ -45,14 +49,31 @@ function App() {
     
     try {
       setIsAnimating(true)
-      // TODO: 集成cubing库的求解功能
-      // cubing库的API需要进一步研究，暂时显示提示信息
-      alert('求解功能开发中，cubing库API集成需要进一步配置。\n\n您可以先使用手动操作按钮来还原魔方。')
-      setSolution([])
-      setCurrentStep(0)
+      
+      // 导入求解函数
+      const { solveCube } = await import('./utils/cubeConverter')
+      
+      // 如果有打乱序列或操作历史，使用它们来构建 KPattern（更快）
+      const movesToState = scrambleMoves.length > 0 ? scrambleMoves : moveHistory
+      
+      // 求解魔方
+      const solutionMoves = await solveCube(cubeState, movesToState)
+      
+      if (solutionMoves.length === 0) {
+        alert('求解失败：无法从当前状态创建求解模式。\n\n这可能是因为从 CubeState 到 KPattern 的转换尚未完全实现。')
+        setSolution([])
+        setCurrentStep(0)
+      } else {
+        setSolution(solutionMoves)
+        setCurrentStep(0)
+        console.log('求解成功，步骤数:', solutionMoves.length)
+        console.log('求解步骤:', solutionMoves.join(' '))
+      }
     } catch (error) {
       console.error('求解失败:', error)
-      alert('求解功能暂不可用，请查看控制台获取错误详情。')
+      alert('求解功能暂不可用，请查看控制台获取错误详情。\n\n错误: ' + (error instanceof Error ? error.message : String(error)))
+      setSolution([])
+      setCurrentStep(0)
     } finally {
       setIsAnimating(false)
     }
@@ -61,6 +82,8 @@ function App() {
   const handleMove = (move: Move) => {
     if (isAnimating) return
     setCubeState(prev => applyMove(prev, move))
+    setMoveHistory(prev => [...prev, move]) // 记录手动操作
+    setScrambleMoves([]) // 清空打乱序列（因为手动操作改变了状态）
   }
 
   const handleStepForward = () => {
