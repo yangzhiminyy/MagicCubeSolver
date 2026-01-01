@@ -81,19 +81,19 @@ export function applyMove(state: CubeState, move: Move): CubeState {
 }
 
 // R面顺时针：U的右列→F的右列→D的右列→B的左列→U的右列
-// 根据新坐标映射：
+// 根据坐标映射：
 // U面row=z+1，所以U[2][2]对应z=1（F面），U[0][2]对应z=-1（B面）
 // D面row=1-z，所以D[0][2]对应z=1（F面），D[2][2]对应z=-1（B面）
-// 所以U的右列从F到B是：U[2][2], U[1][2], U[0][2]
-// 所以D的右列从F到B是：D[0][2], D[1][2], D[2][2]
+// 根据显示的坐标，U的右列直接对应F的右列，不需要反向
 function rotateR(state: CubeState): CubeState {
   const newState = JSON.parse(JSON.stringify(state)) as CubeState
   newState.R = rotateFaceClockwise(state.R)
   
   const temp = [state.U[2][2], state.U[1][2], state.U[0][2]]
-  newState.U[2][2] = state.F[0][2]
+  // U的右列 ← F的右列（直接对应，不需要反向）
+  newState.U[0][2] = state.F[0][2]
   newState.U[1][2] = state.F[1][2]
-  newState.U[0][2] = state.F[2][2]
+  newState.U[2][2] = state.F[2][2]
   newState.F[0][2] = state.D[0][2]
   newState.F[1][2] = state.D[1][2]
   newState.F[2][2] = state.D[2][2]
@@ -109,19 +109,19 @@ function rotateR(state: CubeState): CubeState {
 }
 
 // L面顺时针：U的左列→B的右列→D的左列→F的左列→U的左列
-// 根据新坐标映射：
+// 根据坐标映射：
 // U面row=z+1，所以U[2][0]对应z=1（F面），U[0][0]对应z=-1（B面）
 // D面row=1-z，所以D[0][0]对应z=1（F面），D[2][0]对应z=-1（B面）
-// 所以U的左列从F到B是：U[2][0], U[1][0], U[0][0]
-// 所以D的左列从F到B是：D[0][0], D[1][0], D[2][0]
+// 根据显示的坐标，U的左列从B的右列获取时，直接对应，不需要反向
 function rotateL(state: CubeState): CubeState {
   const newState = JSON.parse(JSON.stringify(state)) as CubeState
   newState.L = rotateFaceClockwise(state.L)
   
-  const temp = [state.U[2][0], state.U[1][0], state.U[0][0]]
-  newState.U[2][0] = state.B[2][2]
+  const temp = [state.U[0][0], state.U[1][0], state.U[2][0]]
+  // U的左列 ← B的右列（直接对应，不需要反向）
+  newState.U[0][0] = state.B[2][2]
   newState.U[1][0] = state.B[1][2]
-  newState.U[0][0] = state.B[0][2]
+  newState.U[2][0] = state.B[0][2]
   // B的右列需要反向，D的左列从F到B是D[0][0], D[1][0], D[2][0]
   newState.B[2][2] = state.D[0][0]
   newState.B[1][2] = state.D[1][0]
@@ -148,21 +148,21 @@ function rotateU(state: CubeState): CubeState {
   const temp = [state.F[0][0], state.F[0][1], state.F[0][2]]
   
   // U旋转时，边缘块顺时针移动：F→R→B→L→F
-  // 顺时针移动意味着：F从R获取，R从B获取，B从L获取，L从F获取
+  // 根据坐标映射，不需要做镜像处理，直接对应即可
   // F的第一行 ← R的第一行（顺时针：F←R）
   newState.F[0][0] = state.R[0][0]
   newState.F[0][1] = state.R[0][1]
   newState.F[0][2] = state.R[0][2]
   
-  // R的第一行 ← B的第一行（B面列是镜像的，需要反向，顺时针：R←B）
-  newState.R[0][0] = state.B[0][2]
+  // R的第一行 ← B的第一行（直接对应，不需要反向，顺时针：R←B）
+  newState.R[0][0] = state.B[0][0]
   newState.R[0][1] = state.B[0][1]
-  newState.R[0][2] = state.B[0][0]
+  newState.R[0][2] = state.B[0][2]
   
-  // B的第一行 ← L的第一行（B面列是镜像的，需要反向写入，顺时针：B←L）
-  newState.B[0][2] = state.L[0][0]
+  // B的第一行 ← L的第一行（直接对应，不需要反向，顺时针：B←L）
+  newState.B[0][0] = state.L[0][0]
   newState.B[0][1] = state.L[0][1]
-  newState.B[0][0] = state.L[0][2]
+  newState.B[0][2] = state.L[0][2]
   
   // L的第一行 ← temp（顺时针：L←F）
   newState.L[0][0] = temp[0]
@@ -174,31 +174,32 @@ function rotateU(state: CubeState): CubeState {
 
 // D面顺时针：F的第三行→L的第三行→B的第三行→R的第三行→F的第三行
 // 从下面看，D面顺时针旋转：F→L→B→R→F
+// 根据坐标映射，边缘块顺时针移动：F←L←B←R←F
 function rotateD(state: CubeState): CubeState {
   const newState = JSON.parse(JSON.stringify(state)) as CubeState
   newState.D = rotateFaceClockwise(state.D)
   
   const temp = [state.F[2][0], state.F[2][1], state.F[2][2]]
   
-  // F的第三行 ← R的第三行（顺时针：F←R）
-  newState.F[2][0] = state.R[2][0]
-  newState.F[2][1] = state.R[2][1]
-  newState.F[2][2] = state.R[2][2]
+  // F的第三行 ← L的第三行（顺时针：F←L）
+  newState.F[2][0] = state.L[2][0]
+  newState.F[2][1] = state.L[2][1]
+  newState.F[2][2] = state.L[2][2]
   
-  // R的第三行 ← B的第三行（顺时针：R←B）
-  newState.R[2][0] = state.B[2][0]
-  newState.R[2][1] = state.B[2][1]
-  newState.R[2][2] = state.B[2][2]
+  // L的第三行 ← B的第三行（顺时针：L←B）
+  newState.L[2][0] = state.B[2][0]
+  newState.L[2][1] = state.B[2][1]
+  newState.L[2][2] = state.B[2][2]
   
-  // B的第三行 ← L的第三行（顺时针：B←L）
-  newState.B[2][0] = state.L[2][0]
-  newState.B[2][1] = state.L[2][1]
-  newState.B[2][2] = state.L[2][2]
+  // B的第三行 ← R的第三行（顺时针：B←R）
+  newState.B[2][0] = state.R[2][0]
+  newState.B[2][1] = state.R[2][1]
+  newState.B[2][2] = state.R[2][2]
   
-  // L的第三行 ← temp（顺时针：L←F）
-  newState.L[2][0] = temp[0]
-  newState.L[2][1] = temp[1]
-  newState.L[2][2] = temp[2]
+  // R的第三行 ← temp（顺时针：R←F）
+  newState.R[2][0] = temp[0]
+  newState.R[2][1] = temp[1]
+  newState.R[2][2] = temp[2]
   
   return newState
 }
@@ -236,21 +237,23 @@ function rotateF(state: CubeState): CubeState {
 
 // B面顺时针：U的第一行→L的左列→D的第三行→R的右列→U的第一行
 // B面是背面，旋转方向与F面相反
+// 根据坐标映射，需要正确处理方向
 function rotateB(state: CubeState): CubeState {
   const newState = JSON.parse(JSON.stringify(state)) as CubeState
   newState.B = rotateFaceClockwise(state.B)
   
-  const temp = [state.U[0][0], state.U[0][1], state.U[0][2]]
+  // temp保存U的第一行（反向保存，因为后续需要反向使用）
+  const temp = [state.U[0][2], state.U[0][1], state.U[0][0]]
   
   // U的第一行 ← R的右列（从上到下，反向读取）
   newState.U[0][0] = state.R[0][2]
   newState.U[0][1] = state.R[1][2]
   newState.U[0][2] = state.R[2][2]
   
-  // R的右列 ← D的第三行（从左到右，不反向）
-  newState.R[0][2] = state.D[2][0]
+  // R的右列 ← D的第三行（从左到右，需要反向）
+  newState.R[0][2] = state.D[2][2]
   newState.R[1][2] = state.D[2][1]
-  newState.R[2][2] = state.D[2][2]
+  newState.R[2][2] = state.D[2][0]
   
   // D的第三行 ← L的左列（从上到下，不反向）
   newState.D[2][0] = state.L[0][0]
