@@ -44,6 +44,12 @@ The application is built with a component-based architecture:
 
 The application supports multiple solving algorithms, selectable via the UI:
 
+**Status Summary:**
+- ✅ **Reverse Moves**: Fully functional
+- ✅ **Kociemba**: Fully functional (using kociemba-wasm)
+- ⚠️ **IDA***: Functional but slow for complex states
+- ⚠️ **Thistlethwaite**: Functional but very slow, may timeout
+
 ### 1. Reverse Moves (Default)
 - **Speed**: ⚡⚡⚡⚡⚡ (Fastest)
 - **Requirements**: Requires scramble sequence history
@@ -53,9 +59,9 @@ The application supports multiple solving algorithms, selectable via the UI:
 ### 2. Kociemba Algorithm
 - **Speed**: ⚡⚡⚡⚡ (Fast)
 - **Requirements**: Valid cubestring format
-- **Description**: Two-phase algorithm using the `cube-solver` library. Provides near-optimal solutions.
+- **Description**: Two-phase algorithm using the `kociemba-wasm` library. Provides near-optimal solutions. Fully supports cubestring format (54 characters).
 - **Use Case**: General-purpose solving when scramble history is not available
-- **Note**: Currently has issues with cubestring format conversion accuracy
+- **Status**: ✅ Fully functional and tested
 
 ### 3. IDA* (Iterative Deepening A*)
 - **Speed**: ⚡⚡ (Slow)
@@ -78,13 +84,7 @@ The application supports multiple solving algorithms, selectable via the UI:
 
 ### Known Problems
 
-1. **Kociemba Cubestring Format**
-   - **Issue**: The conversion from internal `CubeState` to Kociemba's `cubestring` format may be incorrect
-   - **Impact**: Solutions from Kociemba algorithm may not correctly solve the cube
-   - **Status**: Under investigation
-   - **Workaround**: Use "Reverse Moves" algorithm when scramble history is available
-
-2. **Thistlethwaite Performance**
+1. **Thistlethwaite Performance**
    - **Issue**: The algorithm is very slow and may timeout on stage 2->3 transition
    - **Impact**: Complex states may fail to solve within timeout period
    - **Status**: Simplified implementation, may need optimization or full group theory implementation
@@ -97,7 +97,6 @@ The application supports multiple solving algorithms, selectable via the UI:
 
 ### Future Improvements
 
-- Fix Kociemba cubestring conversion accuracy
 - Optimize Thistlethwaite algorithm or implement full group theory version
 - Add solution step auto-playback with configurable speed
 - Add move notation display (e.g., "R U R' U'")
@@ -111,7 +110,7 @@ The application supports multiple solving algorithms, selectable via the UI:
 - **Three.js** - 3D graphics rendering
 - **@react-three/fiber** - React Three.js renderer
 - **@react-three/drei** - Three.js utilities
-- **cube-solver** - Kociemba algorithm library
+- **kociemba-wasm** - Kociemba algorithm library (WebAssembly implementation)
 - **TypeScript** - Type safety
 - **Vite** - Build tool and dev server
 
@@ -220,6 +219,12 @@ MIT
 
 应用程序支持多种求解算法，可通过UI选择：
 
+**状态总结：**
+- ✅ **反向移动**：完全功能正常
+- ✅ **Kociemba**：完全功能正常（使用 kociemba-wasm）
+- ⚠️ **IDA***：功能正常但复杂状态较慢
+- ⚠️ **Thistlethwaite**：功能正常但非常慢，可能超时
+
 ### 1. 反向移动（默认）
 - **速度**：⚡⚡⚡⚡⚡（最快）
 - **要求**：需要打乱序列历史
@@ -229,9 +234,9 @@ MIT
 ### 2. Kociemba 算法
 - **速度**：⚡⚡⚡⚡（快速）
 - **要求**：有效的 cubestring 格式
-- **描述**：使用 `cube-solver` 库的两阶段算法。提供接近最优的解。
+- **描述**：使用 `kociemba-wasm` 库的两阶段算法。提供接近最优的解。完全支持 cubestring 格式（54字符）。
 - **使用场景**：当没有打乱历史时的一般用途求解
-- **注意**：当前 cubestring 格式转换准确性存在问题
+- **状态**：✅ 完全功能正常并已测试
 
 ### 3. IDA*（迭代加深A*）
 - **速度**：⚡⚡（较慢）
@@ -254,13 +259,7 @@ MIT
 
 ### 已知问题
 
-1. **Kociemba Cubestring 格式**
-   - **问题**：从内部 `CubeState` 到 Kociemba 的 `cubestring` 格式的转换可能不正确
-   - **影响**：Kociemba 算法的解可能无法正确还原魔方
-   - **状态**：正在调查中
-   - **解决方法**：当有打乱历史时使用"反向移动"算法
-
-2. **Thistlethwaite 性能**
+1. **Thistlethwaite 性能**
    - **问题**：算法非常慢，可能在阶段 2->3 转换时超时
    - **影响**：复杂状态可能在超时期间内无法求解
    - **状态**：简化实现，可能需要优化或完整群论实现
@@ -273,7 +272,6 @@ MIT
 
 ### 未来改进
 
-- 修复 Kociemba cubestring 转换准确性
 - 优化 Thistlethwaite 算法或实现完整群论版本
 - 添加可配置速度的求解步骤自动回放
 - 添加移动符号显示（例如 "R U R' U'"）
@@ -287,7 +285,7 @@ MIT
 - **Three.js** - 3D图形渲染
 - **@react-three/fiber** - React Three.js 渲染器
 - **@react-three/drei** - Three.js 工具库
-- **cube-solver** - Kociemba 算法库
+- **kociemba-wasm** - Kociemba 算法库（WebAssembly 实现）
 - **TypeScript** - 类型安全
 - **Vite** - 构建工具和开发服务器
 

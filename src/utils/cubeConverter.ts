@@ -1,6 +1,6 @@
 import { CubeState, Move } from './cubeTypes'
 import { createSolvedCube } from './cubeLogic'
-import { solve as kociembaSolve } from 'cube-solver'
+import { solve as kociembaWasmSolve } from 'kociemba-wasm'
 
 // 将 CubeState 转换为 Kociemba 算法需要的 cubestring 格式
 // 格式: UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
@@ -45,9 +45,8 @@ export function cubeStateToCubestring(cubeState: CubeState): string {
   // U面 (上，白色) - U1-U9
   // 根据坐标映射，U面 row=z+1，所以row=0是B方向，row=2是F方向
   // Kociemba的U1-U9是从上到下、从左到右
-  // 从上往下看U面：上应该是F方向（row=2），下应该是B方向（row=0）
-  // 所以需要反向读取行：row=2到0
-  for (let row = 2; row >= 0; row--) {
+  // 标准顺序：row=0到2, col=0到2
+  for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
       cubestring += colorToKociembaChar(cubeState.U[row][col])
     }
@@ -77,9 +76,8 @@ export function cubeStateToCubestring(cubeState: CubeState): string {
   // D面 (下，黄色) - D1-D9
   // 根据坐标映射，D面 row=1-z，col=x+1
   // Kociemba的D1-D9是从上到下、从左到右
-  // 从下往上看D面：上应该是B方向（row=2），下应该是F方向（row=0）
-  // 所以需要反向读取行：row=2到0
-  for (let row = 2; row >= 0; row--) {
+  // 标准顺序：row=0到2, col=0到2
+  for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
       cubestring += colorToKociembaChar(cubeState.D[row][col])
     }
@@ -99,10 +97,9 @@ export function cubeStateToCubestring(cubeState: CubeState): string {
   // B面 (后，橙色) - B1-B9
   // 根据坐标映射，B面 row=1-y，col=1-x（镜像）
   // Kociemba的B1-B9是从上到下、从左到右
-  // 从后往前看B面：左应该是R方向（col=0），右应该是L方向（col=2）
-  // 但B面是镜像的，需要反向读取列：col=2到0
+  // 使用标准顺序：row=0到2, col=0到2
   for (let row = 0; row < 3; row++) {
-    for (let col = 2; col >= 0; col--) {
+    for (let col = 0; col < 3; col++) {
       cubestring += colorToKociembaChar(cubeState.B[row][col])
     }
   }
@@ -207,11 +204,9 @@ export async function solveCube(cubeState: CubeState, _movesToState?: Move[]): P
     }
     
     // 使用 Kociemba 算法求解
-    // cube-solver 的 solve 函数需要两个参数：cubestring 和 solver 类型（'kociemba'）
-    const solutionString = kociembaSolve(cubestring, 'kociemba')
+    // kociemba-wasm 支持 cubestring 格式（54 字符）
+    const solutionString = await kociembaWasmSolve(cubestring)
     console.log('Kociemba 求解结果（原始字符串）:', solutionString)
-    console.log('Kociemba 求解结果类型:', typeof solutionString)
-    console.log('Kociemba 求解结果长度:', solutionString.length)
     
     // 将求解结果转换为 Move[] 数组
     const moves = kociembaStringToMoves(solutionString)

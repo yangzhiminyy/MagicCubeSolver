@@ -69,15 +69,6 @@ print(f"D面 (27-35): {solved_cubestring[27:36]}  (应该是 DDDDDDDDD)")
 print(f"L面 (36-44): {solved_cubestring[36:45]}  (应该是 LLLLLLLLL)")
 print(f"B面 (45-53): {solved_cubestring[45:54]}  (应该是 BBBBBBBBB)")
 
-# 如果提供了命令行参数，测试该 cubestring
-if len(sys.argv) > 1:
-    print("\n" + "=" * 60)
-    print("测试 4: 命令行提供的 cubestring")
-    print("=" * 60)
-    test_cs = sys.argv[1]
-    print(f"输入 cubestring: {test_cs}")
-    analyze_cubestring(test_cs)
-
 def analyze_cubestring(cubestring):
     """分析 cubestring"""
     if len(cubestring) != 54:
@@ -101,3 +92,12 @@ def analyze_cubestring(cubestring):
             print(f"步骤数: {len(moves)}")
     except Exception as e:
         print(f"[ERROR] 求解失败: {e}")
+
+# 如果提供了命令行参数，测试该 cubestring
+if len(sys.argv) > 1:
+    print("\n" + "=" * 60)
+    print("测试 4: 命令行提供的 cubestring")
+    print("=" * 60)
+    test_cs = sys.argv[1]
+    print(f"输入 cubestring: {test_cs}")
+    analyze_cubestring(test_cs)

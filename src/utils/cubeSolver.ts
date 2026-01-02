@@ -14,6 +14,8 @@ export function solveByReverseMoves(movesToState: Move[]): Move[] {
     return []
   }
   
+  console.log('反向移动法：原始序列:', movesToState)
+  
   // 反向移动序列，并反转每个移动的方向
   const reversed: Move[] = []
   for (let i = movesToState.length - 1; i >= 0; i--) {
@@ -31,6 +33,7 @@ export function solveByReverseMoves(movesToState: Move[]): Move[] {
     }
   }
   
+  console.log('反向移动法：反向序列:', reversed)
   return reversed
 }
 

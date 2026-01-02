@@ -12,6 +12,7 @@
     "@react-three/fiber": "^8.15.11",
     "cube-solver": "^2.4.1",
     "cubing": "^0.61.1",
+    "kociemba-wasm": "^1.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "three": "^0.158.0"
