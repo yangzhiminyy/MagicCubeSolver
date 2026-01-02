@@ -1,3 +1,4 @@
+![screenshots\magiccubesolver.png](.\screenshots\magiccubesolver.png)
 # Rubik's Cube Solver
 
 An online Rubik's Cube solver built with React and Three.js, featuring 3D visualization, manual manipulation, and automatic solving capabilities.
