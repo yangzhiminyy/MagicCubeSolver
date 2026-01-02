@@ -8,12 +8,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-three/drei": "^9.88.13",
+    "@react-three/fiber": "^8.15.11",
+    "cube-solver": "^2.4.1",
+    "cubing": "^0.61.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "three": "^0.158.0",
-    "@react-three/fiber": "^8.15.11",
-    "@react-three/drei": "^9.88.13",
-    "cubing": "^0.61.1"
+    "three": "^0.158.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",

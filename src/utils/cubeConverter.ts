@@ -1,247 +1,228 @@
 import { CubeState, Move } from './cubeTypes'
-import type { KPattern } from 'cubing/kpuzzle'
-import type { Alg } from 'cubing/alg'
-import { cube3x3x3 } from 'cubing/puzzles'
-import { experimentalSolve3x3x3IgnoringCenters } from 'cubing/search'
-import { createSolvedCube, applyMove } from './cubeLogic'
+import { createSolvedCube } from './cubeLogic'
+import { solve as kociembaSolve } from 'cube-solver'
 
-// 将我们的CubeState转换为cubing库需要的面状态字符串
-// cubing库使用标准颜色映射：U=白, D=黄, F=红, B=橙, L=绿, R=蓝
-export function cubeStateToFacelets(cubeState: CubeState): string {
-  // 面顺序: U R F D L B
-  // 每个面是3x3，按行优先顺序
+// 将 CubeState 转换为 Kociemba 算法需要的 cubestring 格式
+// 格式: UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
+// 面顺序: U R F D L B，每个面按行优先顺序（从左到右，从上到下）
+// 
+// 根据 RubiksCube.tsx 的坐标映射：
+// - U面: row=z+1 (row=0对应z=-1/B面, row=2对应z=1/F面), col=x+1 (col=0对应x=-1/L面, col=2对应x=1/R面)
+//   从上到下：row=0到2（B到F），从左到右：col=0到2（L到R）
+// - R面: row=1-y (row=0对应y=1/U面, row=2对应y=-1/D面), col=1-z (col=0对应z=1/F面, col=2对应z=-1/B面)
+//   从上到下：row=0到2（U到D），从左到右：col=0到2（F到B）
+// - F面: row=1-y (row=0对应y=1/U面, row=2对应y=-1/D面), col=x+1 (col=0对应x=-1/L面, col=2对应x=1/R面)
+//   从上到下：row=0到2（U到D），从左到右：col=0到2（L到R）
+// - D面: row=1-z (row=0对应z=1/F面, row=2对应z=-1/B面), col=x+1 (col=0对应x=-1/L面, col=2对应x=1/R面)
+//   从上到下：row=0到2（F到B），从左到右：col=0到2（L到R）
+// - L面: row=1-y (row=0对应y=1/U面, row=2对应y=-1/D面), col=z+1 (col=0对应z=-1/B面, col=2对应z=1/F面)
+//   从上到下：row=0到2（U到D），从左到右：col=0到2（B到F）
+// - B面: row=1-y (row=0对应y=1/U面, row=2对应y=-1/D面), col=1-x (col=0对应x=1/R面, col=2对应x=-1/L面)
+//   从上到下：row=0到2（U到D），从左到右：col=0到2（R到L，注意是镜像的）
+export function cubeStateToCubestring(cubeState: CubeState): string {
+  let cubestring = ''
   
-  let facelets = ''
+  // Kociemba 官方格式（根据官方文档）：
+  // 面顺序：U R F D L B
+  // 每个面按行优先顺序（从左到右，从上到下）：U1-U9, R1-R9, F1-F9, D1-D9, L1-L9, B1-B9
+  // 
+  // 根据 RubiksCube.tsx 的坐标映射：
+  // - U面: row=z+1 (row=0对应z=-1/B, row=2对应z=1/F), col=x+1 (col=0对应x=-1/L, col=2对应x=1/R)
+  //   Kociemba的U1-U9对应：从上到下（row=0到2），从左到右（col=0到2）
+  //   但我们的row=0是B方向，row=2是F方向，所以需要调整
+  // - R面: row=1-y (row=0对应y=1/U, row=2对应y=-1/D), col=1-z (col=0对应z=1/F, col=2对应z=-1/B)
+  //   Kociemba的R1-R9对应：从上到下（row=0到2），从左到右（col=0到2）
+  // - F面: row=1-y (row=0对应y=1/U, row=2对应y=-1/D), col=x+1 (col=0对应x=-1/L, col=2对应x=1/R)
+  //   Kociemba的F1-F9对应：从上到下（row=0到2），从左到右（col=0到2）
+  // - D面: row=1-z (row=0对应z=1/F, row=2对应z=-1/B), col=x+1 (col=0对应x=-1/L, col=2对应x=1/R)
+  //   Kociemba的D1-D9对应：从上到下（row=0到2），从左到右（col=0到2）
+  // - L面: row=1-y (row=0对应y=1/U, row=2对应y=-1/D), col=z+1 (col=0对应z=-1/B, col=2对应z=1/F)
+  //   Kociemba的L1-L9对应：从上到下（row=0到2），从左到右（col=0到2）
+  // - B面: row=1-y (row=0对应y=1/U, row=2对应y=-1/D), col=1-x (col=0对应x=1/R, col=2对应x=-1/L)
+  //   Kociemba的B1-B9对应：从上到下（row=0到2），从左到右（col=0到2）
+  //   但B面是镜像的，需要调整
   
-  // U面 (上，白色)
-  for (let row = 0; row < 3; row++) {
+  // U面 (上，白色) - U1-U9
+  // 根据坐标映射，U面 row=z+1，所以row=0是B方向，row=2是F方向
+  // Kociemba的U1-U9是从上到下、从左到右
+  // 从上往下看U面：上应该是F方向（row=2），下应该是B方向（row=0）
+  // 所以需要反向读取行：row=2到0
+  for (let row = 2; row >= 0; row--) {
     for (let col = 0; col < 3; col++) {
-      facelets += colorToChar(cubeState.U[row][col])
+      cubestring += colorToKociembaChar(cubeState.U[row][col])
     }
   }
   
-  // R面 (右，蓝色)
+  // R面 (右，蓝色) - R1-R9
+  // 根据坐标映射，R面 row=1-y，col=1-z
+  // Kociemba的R1-R9是从上到下、从左到右
+  // 从右往左看R面：左应该是F方向（col=0），右应该是B方向（col=2）
+  // 标准顺序：row=0到2, col=0到2
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
-      facelets += colorToChar(cubeState.R[row][col])
+      cubestring += colorToKociembaChar(cubeState.R[row][col])
     }
   }
   
-  // F面 (前，红色)
+  // F面 (前，红色) - F1-F9
+  // 根据坐标映射，F面 row=1-y，col=x+1
+  // Kociemba的F1-F9是从上到下、从左到右
+  // 标准顺序：row=0到2, col=0到2
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
-      facelets += colorToChar(cubeState.F[row][col])
+      cubestring += colorToKociembaChar(cubeState.F[row][col])
     }
   }
   
-  // D面 (下，黄色)
-  for (let row = 0; row < 3; row++) {
+  // D面 (下，黄色) - D1-D9
+  // 根据坐标映射，D面 row=1-z，col=x+1
+  // Kociemba的D1-D9是从上到下、从左到右
+  // 从下往上看D面：上应该是B方向（row=2），下应该是F方向（row=0）
+  // 所以需要反向读取行：row=2到0
+  for (let row = 2; row >= 0; row--) {
     for (let col = 0; col < 3; col++) {
-      facelets += colorToChar(cubeState.D[row][col])
+      cubestring += colorToKociembaChar(cubeState.D[row][col])
     }
   }
   
-  // L面 (左，绿色)
+  // L面 (左，绿色) - L1-L9
+  // 根据坐标映射，L面 row=1-y，col=z+1
+  // Kociemba的L1-L9是从上到下、从左到右
+  // 从左往右看L面：左应该是B方向（col=0），右应该是F方向（col=2）
+  // 标准顺序：row=0到2, col=0到2
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
-      facelets += colorToChar(cubeState.L[row][col])
+      cubestring += colorToKociembaChar(cubeState.L[row][col])
     }
   }
   
-  // B面 (后，橙色)
+  // B面 (后，橙色) - B1-B9
+  // 根据坐标映射，B面 row=1-y，col=1-x（镜像）
+  // Kociemba的B1-B9是从上到下、从左到右
+  // 从后往前看B面：左应该是R方向（col=0），右应该是L方向（col=2）
+  // 但B面是镜像的，需要反向读取列：col=2到0
   for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 3; col++) {
-      facelets += colorToChar(cubeState.B[row][col])
+    for (let col = 2; col >= 0; col--) {
+      cubestring += colorToKociembaChar(cubeState.B[row][col])
     }
   }
   
-  return facelets
+  return cubestring
 }
 
-function colorToChar(color: string): string {
+// Kociemba 算法的颜色映射
+// 根据我们的 CubeState 定义：
+// U=白(white), R=蓝(blue), F=红(red), D=黄(yellow), L=绿(green), B=橙(orange)
+// Kociemba 标准格式：URFDLB，所以：
+// white -> U, blue -> R, red -> F, yellow -> D, green -> L, orange -> B
+function colorToKociembaChar(color: string): string {
   const colorMap: Record<string, string> = {
-    'white': 'U',
-    'yellow': 'D',
-    'red': 'F',
-    'orange': 'B',
-    'green': 'L',
-    'blue': 'R',
+    'white': 'U',   // 上 -> U
+    'blue': 'R',    // 右 -> R
+    'red': 'F',     // 前 -> F
+    'yellow': 'D',  // 下 -> D
+    'green': 'L',   // 左 -> L
+    'orange': 'B',  // 后 -> B
   }
   return colorMap[color] || 'U'
 }
 
-// 将 Alg 转换为 Move[] 数组
-export function algToMoves(alg: Alg): Move[] {
+
+// 将 Kociemba 算法返回的字符串转换为 Move[] 数组
+// Kociemba 返回格式: "R U R' U' R2 F' B D2" 等
+export function kociembaStringToMoves(solutionString: string): Move[] {
   const moves: Move[] = []
-  const algString = alg.toString()
+  const moveStrings = solutionString.trim().split(/\s+/).filter(s => s.length > 0)
   
-  // 解析算法字符串，例如 "R U R' U'"
-  const moveStrings = algString.trim().split(/\s+/).filter(s => s.length > 0)
+  console.log('Kociemba 原始字符串:', solutionString)
+  console.log('分割后的移动字符串:', moveStrings)
   
   for (const moveStr of moveStrings) {
-    // 处理各种移动格式：R, R', R2, etc.
-    if (moveStr.match(/^[RLUDFB]2?$/)) {
-      // 简单移动：R, L, U, D, F, B 或 R2, L2, etc.
+    // Kociemba 格式: R, R', R2, U, U', U2, etc.
+    // 匹配模式：
+    // - R, L, U, D, F, B (简单移动)
+    // - R', L', U', D', F', B' (反向移动)
+    // - R2, L2, U2, D2, F2, B2 (180度旋转)
+    
+    if (moveStr.match(/^[RLUDFB]$/)) {
+      // 简单移动：R, L, U, D, F, B
       moves.push(moveStr as Move)
+      console.log(`解析移动: ${moveStr} -> ${moveStr}`)
     } else if (moveStr.match(/^[RLUDFB]'$/)) {
       // 反向移动：R', L', etc.
       moves.push(moveStr as Move)
+      console.log(`解析移动: ${moveStr} -> ${moveStr}`)
     } else if (moveStr.match(/^[RLUDFB]2$/)) {
       // 180度旋转：R2, L2, etc.
       moves.push(moveStr as Move)
+      console.log(`解析移动: ${moveStr} -> ${moveStr}`)
+    } else {
+      console.warn(`无法解析的移动格式: "${moveStr}"`)
     }
   }
   
+  console.log('最终解析的移动序列:', moves)
   return moves
 }
 
-// 从 CubeState 创建 KPattern
-// 通过应用移动序列从已解决状态构建当前状态
-// 如果提供了 movesToState，直接使用它们（更快），否则使用搜索
-export async function cubeStateToKPattern(cubeState: CubeState, movesToState?: Move[]): Promise<KPattern> {
-  const kpuzzle = await cube3x3x3.kpuzzle()
-  const solvedPattern = kpuzzle.defaultPattern()
-  
-  // 检查当前状态是否已经是已解决状态
-  const solvedState = createSolvedCube()
-  if (JSON.stringify(cubeState) === JSON.stringify(solvedState)) {
-    return solvedPattern
-  }
-  
-  // 如果提供了移动序列，直接使用它们来构建 KPattern（更快）
-  if (movesToState && movesToState.length > 0) {
-    console.log(`cubeStateToKPattern: 使用提供的移动序列（${movesToState.length}步）`)
-    let pattern = solvedPattern
-    for (const move of movesToState) {
-      pattern = pattern.applyMove(move)
-    }
-    
-    // 验证结果是否正确
-    let testState = createSolvedCube()
-    for (const move of movesToState) {
-      testState = applyMove(testState, move)
-    }
-    const testKey = JSON.stringify(testState)
-    const targetKey = JSON.stringify(cubeState)
-    
-    if (testKey === targetKey) {
-      console.log('cubeStateToKPattern: 移动序列验证成功')
-      return pattern
-    } else {
-      console.warn('cubeStateToKPattern: 提供的移动序列与当前状态不匹配，将使用搜索')
-    }
-  }
-  
-  // 使用分批处理的 BFS 搜索
-  const maxDepth = 25 // 最大深度
-  const moveTypes: Move[] = ['R', "R'", 'L', "L'", 'U', "U'", 'D', "D'", 'F', "F'", 'B', "B'"]
-  const batchSize = 1000 // 每批处理的节点数
-  const maxIterations = 500000 // 最大迭代次数
-  
-  interface SearchNode {
-    state: CubeState
-    moves: Move[]
-    pattern: KPattern
-  }
-  
-  const queue: SearchNode[] = [{
-    state: solvedState,
-    moves: [],
-    pattern: solvedPattern
-  }]
-  
-  const visited = new Map<string, SearchNode>()
-  visited.set(JSON.stringify(solvedState), queue[0])
-  
-  let iterations = 0
-  let lastDepth = 0
-  const targetKey = JSON.stringify(cubeState)
-  
-  // 分批处理，避免阻塞主线程
-  while (queue.length > 0 && iterations < maxIterations) {
-    const batchEnd = Math.min(queue.length, batchSize)
-    
-    for (let i = 0; i < batchEnd; i++) {
-      iterations++
-      const node = queue.shift()!
-      
-      // 每增加一层深度，输出进度
-      if (node.moves.length > lastDepth) {
-        lastDepth = node.moves.length
-        console.log(`cubeStateToKPattern: 搜索深度 ${lastDepth}, 已访问状态数: ${visited.size}, 队列长度: ${queue.length}`)
-      }
-      
-      // 检查是否找到目标状态
-      const stateKey = JSON.stringify(node.state)
-      
-      if (stateKey === targetKey) {
-        console.log(`cubeStateToKPattern: 找到匹配状态，步数: ${node.moves.length}, 迭代次数: ${iterations}`)
-        console.log('移动序列:', node.moves.join(' '))
-        
-        // 验证 pattern 是否正确
-        let testState = createSolvedCube()
-        for (const move of node.moves) {
-          testState = applyMove(testState, move)
-        }
-        const testKey = JSON.stringify(testState)
-        if (testKey !== targetKey) {
-          console.error('cubeStateToKPattern: 警告！找到的状态与目标状态不匹配！')
-        }
-        
-        return node.pattern
-      }
-      
-      // 如果超过最大深度，跳过
-      if (node.moves.length >= maxDepth) {
-        continue
-      }
-      
-      // 尝试所有可能的移动
-      for (const move of moveTypes) {
-        const newState = applyMove(node.state, move)
-        const newStateKey = JSON.stringify(newState)
-        
-        if (!visited.has(newStateKey)) {
-          const newPattern = node.pattern.applyMove(move)
-          const newNode = {
-            state: newState,
-            moves: [...node.moves, move],
-            pattern: newPattern
-          }
-          visited.set(newStateKey, newNode)
-          queue.push(newNode)
-        }
-      }
-    }
-    
-    // 让出控制权给浏览器，避免页面卡死
-    if (queue.length > 0) {
-      await new Promise(resolve => setTimeout(resolve, 0))
-    }
-  }
-  
-  // 如果搜索失败，返回已解决状态（这会导致求解失败）
-  if (iterations >= maxIterations) {
-    console.error(`cubeStateToKPattern: 搜索超时（超过最大迭代次数 ${maxIterations}）`)
-    console.error(`已访问状态数: ${visited.size}, 最后搜索深度: ${lastDepth}`)
-  } else {
-    console.error('cubeStateToKPattern: 无法找到从已解决状态到当前状态的移动序列（超过最大深度限制）')
-  }
-  console.error('提示：当前状态可能需要超过', maxDepth, '步才能从已解决状态到达')
-  return solvedPattern
-}
-
-// 求解魔方
-export async function solveCube(cubeState: CubeState, movesToState?: Move[]): Promise<Move[]> {
+// 使用 Kociemba 算法求解魔方
+// movesToState 参数保留以保持 API 兼容性，但不再使用（Kociemba 直接从 cubestring 求解）
+export async function solveCube(cubeState: CubeState, _movesToState?: Move[]): Promise<Move[]> {
   try {
-    // 从 cubeState 创建 KPattern（如果提供了移动序列，会更快）
-    const pattern = await cubeStateToKPattern(cubeState, movesToState)
+    // 检查当前状态是否已经是已解决状态
+    const solvedState = createSolvedCube()
+    if (JSON.stringify(cubeState) === JSON.stringify(solvedState)) {
+      console.log('魔方已经解决，无需求解')
+      return []
+    }
     
-    // 使用 experimentalSolve3x3x3IgnoringCenters 求解
-    const solutionAlg = await experimentalSolve3x3x3IgnoringCenters(pattern)
+    // 将 CubeState 转换为 Kociemba 算法需要的 cubestring 格式
+    const cubestring = cubeStateToCubestring(cubeState)
+    console.log('Kociemba 输入 cubestring:', cubestring)
+    console.log('cubestring 长度:', cubestring.length)
     
-    // 将 Alg 转换为 Move[] 数组
-    const moves = algToMoves(solutionAlg)
+    // 验证已解决状态的 cubestring
+    const solvedCubestring = cubeStateToCubestring(solvedState)
+    console.log('已解决状态的 cubestring:', solvedCubestring)
+    console.log('期望的已解决状态: UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB')
+    
+    // 打印每个面的详细信息
+    console.log('当前状态各面:')
+    console.log('U面:', cubeState.U.flat().map(c => colorToKociembaChar(c)).join(''))
+    console.log('R面:', cubeState.R.flat().map(c => colorToKociembaChar(c)).join(''))
+    console.log('F面:', cubeState.F.flat().map(c => colorToKociembaChar(c)).join(''))
+    console.log('D面:', cubeState.D.flat().map(c => colorToKociembaChar(c)).join(''))
+    console.log('L面:', cubeState.L.flat().map(c => colorToKociembaChar(c)).join(''))
+    console.log('B面:', cubeState.B.flat().map(c => colorToKociembaChar(c)).join(''))
+    
+    // 输出用于 Python 测试的命令
+    console.log('\n' + '='.repeat(60))
+    console.log('Python 测试命令:')
+    console.log(`python test_cubestring.py ${cubestring}`)
+    console.log('='.repeat(60))
+    
+    // 验证 cubestring 长度
+    if (cubestring.length !== 54) {
+      throw new Error(`cubestring 长度不正确: ${cubestring.length}，应该是 54`)
+    }
+    
+    // 使用 Kociemba 算法求解
+    // cube-solver 的 solve 函数需要两个参数：cubestring 和 solver 类型（'kociemba'）
+    const solutionString = kociembaSolve(cubestring, 'kociemba')
+    console.log('Kociemba 求解结果（原始字符串）:', solutionString)
+    console.log('Kociemba 求解结果类型:', typeof solutionString)
+    console.log('Kociemba 求解结果长度:', solutionString.length)
+    
+    // 将求解结果转换为 Move[] 数组
+    const moves = kociembaStringToMoves(solutionString)
+    console.log('转换后的移动序列:', moves)
+    console.log('移动序列长度:', moves.length)
+    
+    // 验证：如果移动序列为空，可能是解析问题
+    if (moves.length === 0 && solutionString.trim().length > 0) {
+      console.error('警告：Kociemba 返回了非空字符串，但解析后移动序列为空！')
+      console.error('原始字符串:', JSON.stringify(solutionString))
+    }
     
     return moves
   } catch (error) {

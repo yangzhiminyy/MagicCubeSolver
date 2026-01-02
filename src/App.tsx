@@ -5,6 +5,7 @@ import RubiksCube from './components/RubiksCube'
 import ControlPanel from './components/ControlPanel'
 import { CubeState, Move } from './utils/cubeTypes'
 import { createSolvedCube, applyMove } from './utils/cubeLogic'
+import { SolverAlgorithm } from './utils/cubeSolver'
 import './App.css'
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
   const [currentStep, setCurrentStep] = useState(0)
   const [scrambleMoves, setScrambleMoves] = useState<Move[]>([]) // 记录打乱序列
   const [moveHistory, setMoveHistory] = useState<Move[]>([]) // 记录手动操作历史
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState<SolverAlgorithm>('reverse-moves') // 默认使用反向移动
   const [showCoordinates, setShowCoordinates] = useState({
     U: false,
     D: false,
@@ -50,14 +52,28 @@ function App() {
     try {
       setIsAnimating(true)
       
-      // 导入求解函数
-      const { solveCube } = await import('./utils/cubeConverter')
+      // 导入求解函数（支持多种算法）
+      const { solveCube } = await import('./utils/cubeSolver')
       
-      // 如果有打乱序列或操作历史，使用它们来构建 KPattern（更快）
-      const movesToState = scrambleMoves.length > 0 ? scrambleMoves : moveHistory
+      // 合并打乱序列和操作历史
+      const movesToState: Move[] = []
+      if (scrambleMoves.length > 0) {
+        movesToState.push(...scrambleMoves)
+      }
+      if (moveHistory.length > 0) {
+        movesToState.push(...moveHistory)
+      }
+      
+      // 使用用户选择的算法
+      // 如果选择了 reverse-moves 但没有打乱序列，自动切换到 kociemba
+      let algorithm = selectedAlgorithm
+      if (algorithm === 'reverse-moves' && movesToState.length === 0) {
+        console.log('没有打乱序列，自动切换到 kociemba 算法')
+        algorithm = 'kociemba'
+      }
       
       // 求解魔方
-      const solutionMoves = await solveCube(cubeState, movesToState)
+      const solutionMoves = await solveCube(cubeState, algorithm, movesToState.length > 0 ? movesToState : undefined)
       
       if (solutionMoves.length === 0) {
         alert('求解失败：无法从当前状态创建求解模式。\n\n这可能是因为从 CubeState 到 KPattern 的转换尚未完全实现。')
@@ -83,7 +99,8 @@ function App() {
     if (isAnimating) return
     setCubeState(prev => applyMove(prev, move))
     setMoveHistory(prev => [...prev, move]) // 记录手动操作
-    setScrambleMoves([]) // 清空打乱序列（因为手动操作改变了状态）
+    // 注意：不清空 scrambleMoves，因为手动操作是在打乱后的基础上进行的
+    // 求解时需要合并 scrambleMoves 和 moveHistory
   }
 
   const handleStepForward = () => {
@@ -135,6 +152,8 @@ function App() {
         isAnimating={isAnimating}
         solution={solution}
         currentStep={currentStep}
+        selectedAlgorithm={selectedAlgorithm}
+        onAlgorithmChange={setSelectedAlgorithm}
         showCoordinates={showCoordinates}
         onToggleCoordinate={(face) => {
           setShowCoordinates(prev => ({

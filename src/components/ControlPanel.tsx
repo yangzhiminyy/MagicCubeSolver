@@ -1,4 +1,5 @@
 import { Move } from '../utils/cubeTypes'
+import { SolverAlgorithm } from '../utils/cubeSolver'
 import './ControlPanel.css'
 
 interface ControlPanelProps {
@@ -10,6 +11,8 @@ interface ControlPanelProps {
   isAnimating: boolean
   solution: Move[]
   currentStep: number
+  selectedAlgorithm: SolverAlgorithm
+  onAlgorithmChange: (algorithm: SolverAlgorithm) => void
   showCoordinates: {
     U: boolean
     D: boolean
@@ -30,6 +33,8 @@ export default function ControlPanel({
   isAnimating,
   solution,
   currentStep,
+  selectedAlgorithm,
+  onAlgorithmChange,
   showCoordinates,
   onToggleCoordinate,
 }: ControlPanelProps) {
@@ -61,6 +66,22 @@ export default function ControlPanel({
           >
             求解
           </button>
+        </div>
+        
+        <div className="algorithm-selector">
+          <label htmlFor="algorithm-select">求解算法：</label>
+          <select
+            id="algorithm-select"
+            value={selectedAlgorithm}
+            onChange={(e) => onAlgorithmChange(e.target.value as SolverAlgorithm)}
+            disabled={isAnimating}
+            className="algorithm-select"
+          >
+            <option value="reverse-moves">反向移动（最快，需打乱序列）</option>
+            <option value="kociemba">Kociemba（快速，两阶段算法）</option>
+            <option value="thistlethwaite">Thistlethwaite（四阶段算法）</option>
+            <option value="ida-star">IDA*（较慢，最优解）</option>
+          </select>
         </div>
       </div>
 
