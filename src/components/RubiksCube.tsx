@@ -2,10 +2,12 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { CubeState } from '../utils/cubeTypes'
+import { AnimationState } from '../utils/cubeAnimation'
 import Cubie from './Cubie'
 
 interface RubiksCubeProps {
   cubeState: CubeState
+  animationState: AnimationState | null
   showCoordinates: {
     U: boolean
     D: boolean
@@ -16,12 +18,93 @@ interface RubiksCubeProps {
   }
 }
 
-export default function RubiksCube({ cubeState, showCoordinates }: RubiksCubeProps) {
+export default function RubiksCube({ cubeState, animationState, showCoordinates }: RubiksCubeProps) {
   const groupRef = useRef<THREE.Group>(null)
-
-  useFrame(() => {
-    if (groupRef.current) {
-      // 可以在这里添加旋转动画
+  const cubieRefs = useRef<Map<string, THREE.Group>>(new Map())
+  
+  // 动画速度（每秒旋转的弧度）
+  const ANIMATION_SPEED = Math.PI * 2 // 每秒旋转一圈（360度）
+  
+  useFrame((_state, delta) => {
+    if (animationState && animationState.isAnimating && animationState.axis && animationState.affectedCubies && animationState.rotationCenter) {
+      // 更新动画进度
+      const progressDelta = (ANIMATION_SPEED * delta) / Math.abs(animationState.angle)
+      const newProgress = Math.min(animationState.progress + progressDelta, 1)
+      
+      // 计算当前旋转角度
+      const currentAngle = animationState.angle * newProgress
+      
+      const spacing = 1.02
+      const rotationCenter = animationState.rotationCenter
+      
+      // 旋转受影响的 cubies（围绕旋转中心旋转）
+      animationState.affectedCubies.forEach(({ x, y, z }) => {
+        const key = `${x}-${y}-${z}`
+        const cubieGroup = cubieRefs.current.get(key)
+        if (cubieGroup && animationState.axis) {
+          // 计算 cubie 的原始位置
+          const originalPos: [number, number, number] = [x * spacing, y * spacing, z * spacing]
+          
+          // 计算相对于旋转中心的位置
+          const relativePos: [number, number, number] = [
+            originalPos[0] - rotationCenter[0] * spacing,
+            originalPos[1] - rotationCenter[1] * spacing,
+            originalPos[2] - rotationCenter[2] * spacing
+          ]
+          
+          // 创建旋转矩阵
+          const rotationMatrix = new THREE.Matrix4()
+          if (animationState.axis[0] !== 0) {
+            rotationMatrix.makeRotationX(currentAngle)
+          } else if (animationState.axis[1] !== 0) {
+            rotationMatrix.makeRotationY(currentAngle)
+          } else if (animationState.axis[2] !== 0) {
+            rotationMatrix.makeRotationZ(currentAngle)
+          }
+          
+          // 应用旋转
+          const rotatedPos = new THREE.Vector3(...relativePos).applyMatrix4(rotationMatrix)
+          
+          // 计算最终位置（旋转后加回旋转中心）
+          const finalPos: [number, number, number] = [
+            rotatedPos.x + rotationCenter[0] * spacing,
+            rotatedPos.y + rotationCenter[1] * spacing,
+            rotatedPos.z + rotationCenter[2] * spacing
+          ]
+          
+          // 更新位置
+          cubieGroup.position.set(...finalPos)
+          
+          // 应用旋转（让 cubie 本身也旋转，保持方向正确）
+          cubieGroup.rotation.set(0, 0, 0)
+          if (animationState.axis[0] !== 0) {
+            cubieGroup.rotateX(currentAngle)
+          } else if (animationState.axis[1] !== 0) {
+            cubieGroup.rotateY(currentAngle)
+          } else if (animationState.axis[2] !== 0) {
+            cubieGroup.rotateZ(currentAngle)
+          }
+        }
+      })
+    } else {
+      // 动画未进行时，确保所有 cubies 位置正确（重置位置）
+      // 这会在动画完成后或没有动画时执行
+      if (!animationState?.isAnimating) {
+        const spacing = 1.02
+        for (let x = -1; x <= 1; x++) {
+          for (let y = -1; y <= 1; y++) {
+            for (let z = -1; z <= 1; z++) {
+              const key = `${x}-${y}-${z}`
+              const cubieGroup = cubieRefs.current.get(key)
+              if (cubieGroup) {
+                // 重置位置和旋转
+                cubieGroup.position.set(x * spacing, y * spacing, z * spacing)
+                cubieGroup.rotation.set(0, 0, 0)
+              }
+            }
+          }
+        }
+      }
     }
   })
 
@@ -110,15 +193,31 @@ export default function RubiksCube({ cubeState, showCoordinates }: RubiksCubePro
           left: x === -1 ? `L[${1 - y}][${z + 1}]` : null,
         }
 
+        const cubieKey = `${x}-${y}-${z}`
+        // 计算初始位置（动画期间可能会改变）
+        const initialPos: [number, number, number] = [x * spacing, y * spacing, z * spacing]
+        
         cubies.push(
-          <Cubie
-            key={`${x}-${y}-${z}`}
-            position={[x * spacing, y * spacing, z * spacing]}
-            colors={positions}
-            coordinateLabels={coordinateLabels}
-            showCoordinates={showCoordinates}
-            size={size}
-          />
+          <group
+            key={cubieKey}
+            ref={(ref) => {
+              if (ref) {
+                cubieRefs.current.set(cubieKey, ref)
+                // 设置初始位置
+                ref.position.set(...initialPos)
+              } else {
+                cubieRefs.current.delete(cubieKey)
+              }
+            }}
+          >
+            <Cubie
+              position={[0, 0, 0]} // 相对于 group 的位置为 0，实际位置由 group 控制
+              colors={positions}
+              coordinateLabels={coordinateLabels}
+              showCoordinates={showCoordinates}
+              size={size}
+            />
+          </group>
         )
       }
     }

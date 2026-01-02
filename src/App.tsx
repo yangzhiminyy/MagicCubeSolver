@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
 import RubiksCube from './components/RubiksCube'
@@ -6,6 +6,7 @@ import ControlPanel from './components/ControlPanel'
 import { CubeState, Move } from './utils/cubeTypes'
 import { createSolvedCube, applyMove } from './utils/cubeLogic'
 import { SolverAlgorithm } from './utils/cubeSolver'
+import { AnimationState, getAnimationInfo } from './utils/cubeAnimation'
 import './App.css'
 
 function App() {
@@ -16,6 +17,8 @@ function App() {
   const [scrambleMoves, setScrambleMoves] = useState<Move[]>([]) // 记录打乱序列
   const [moveHistory, setMoveHistory] = useState<Move[]>([]) // 记录手动操作历史
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<SolverAlgorithm>('reverse-moves') // 默认使用反向移动
+  const [animationState, setAnimationState] = useState<AnimationState | null>(null)
+  const animationStartTimeRef = useRef<number | null>(null)
   const [showCoordinates, setShowCoordinates] = useState({
     U: false,
     D: false,
@@ -95,12 +98,57 @@ function App() {
     }
   }
 
+  // 动画循环
+  useEffect(() => {
+    if (animationState && animationState.isAnimating) {
+      const startTime = Date.now()
+      animationStartTimeRef.current = startTime
+      
+      const animate = () => {
+        if (!animationState || !animationStartTimeRef.current) return
+        
+        const elapsed = (Date.now() - animationStartTimeRef.current) / 1000 // 秒
+        const duration = Math.abs(animationState.angle) / (Math.PI * 2) * 0.5 // 根据角度计算持续时间（0.5秒转一圈）
+        const progress = Math.min(elapsed / duration, 1)
+        
+        setAnimationState(prev => {
+          if (!prev) return null
+          return { ...prev, progress }
+        })
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        } else {
+          // 动画完成，更新状态
+          if (animationState.move) {
+            setCubeState(prev => applyMove(prev, animationState.move!))
+            setMoveHistory(prev => [...prev, animationState.move!])
+          }
+          setAnimationState(null)
+          animationStartTimeRef.current = null
+        }
+      }
+      
+      requestAnimationFrame(animate)
+    }
+  }, [animationState?.isAnimating])
+  
   const handleMove = (move: Move) => {
-    if (isAnimating) return
-    setCubeState(prev => applyMove(prev, move))
-    setMoveHistory(prev => [...prev, move]) // 记录手动操作
-    // 注意：不清空 scrambleMoves，因为手动操作是在打乱后的基础上进行的
-    // 求解时需要合并 scrambleMoves 和 moveHistory
+    if (isAnimating || animationState?.isAnimating) return
+    
+    // 获取动画信息
+    const { axis, angle, affectedCubies, rotationCenter } = getAnimationInfo(move)
+    
+    // 启动动画
+    setAnimationState({
+      isAnimating: true,
+      move,
+      progress: 0,
+      axis,
+      angle,
+      affectedCubies,
+      rotationCenter,
+    })
   }
 
   const handleStepForward = () => {
@@ -139,7 +187,7 @@ function App() {
           <ambientLight intensity={0.5} />
           <directionalLight position={[10, 10, 5]} intensity={1} />
           <pointLight position={[-10, -10, -10]} intensity={0.5} />
-          <RubiksCube cubeState={cubeState} showCoordinates={showCoordinates} />
+          <RubiksCube cubeState={cubeState} animationState={animationState} showCoordinates={showCoordinates} />
           <OrbitControls enablePan={false} minDistance={3} maxDistance={15} />
         </Canvas>
       </div>
