@@ -168,6 +168,13 @@ src/
   └── main.tsx                # Entry point
 ```
 
+## Future Optimization Plans
+
+See [OPTIMIZATION_PLAN.md](./OPTIMIZATION_PLAN.md) for detailed plans on:
+- Camera-based initial state input system
+- Cubie-based data structure refactoring
+- Texture marking system for cubies
+
 ## License
 
 MIT
@@ -342,6 +349,13 @@ src/
   ├── App.tsx                 # 主应用组件
   └── main.tsx                # 入口文件
 ```
+
+## 未来优化计划
+
+详见 [OPTIMIZATION_PLAN.md](./OPTIMIZATION_PLAN.md)，包括：
+- 基于摄像头的初始状态录入系统
+- 基于 Cubie 的数据结构重构
+- Cubie 纹理标记系统
 
 ## 许可证
 
