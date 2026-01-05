@@ -40,6 +40,7 @@ const COLOR_MAP: Record<FaceColor, string> = {
   orange: '#ff8c00',
   green: '#228b22',
   blue: '#4169e1',
+  black: '#000000',
 }
 
 export default function Cubie({ position, colors, coordinateLabels, showCoordinates, size }: CubieProps) {

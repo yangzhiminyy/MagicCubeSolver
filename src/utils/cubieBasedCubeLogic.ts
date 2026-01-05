@@ -226,6 +226,90 @@ export function cloneCubieBasedState(state: CubieBasedCubeState): CubieBasedCube
 }
 
 /**
+ * 绕x轴旋转cubie颜色（R/L面旋转）
+ * 顺时针：U->F->D->B->U
+ */
+function rotateColorsAroundXAxis(colors: CubieColors, clockwise: boolean): CubieColors {
+  if (clockwise) {
+    return {
+      U: colors.B,
+      D: colors.F,
+      F: colors.U,
+      B: colors.D,
+      L: colors.L,
+      R: colors.R,
+    }
+  } else {
+    return {
+      U: colors.F,
+      D: colors.B,
+      F: colors.D,
+      B: colors.U,
+      L: colors.L,
+      R: colors.R,
+    }
+  }
+}
+
+/**
+ * 绕y轴旋转cubie颜色（U/D面旋转）
+ * 顺时针（从上面看）：F->L->B->R->F
+ * 逆时针（从上面看）：F->R->B->L->F
+ */
+function rotateColorsAroundYAxis(colors: CubieColors, clockwise: boolean): CubieColors {
+  if (clockwise) {
+    // 从上面看顺时针
+    return {
+      U: colors.U,
+      D: colors.D,
+      F: colors.L,
+      B: colors.R,
+      L: colors.B,
+      R: colors.F,
+    }
+  } else {
+    // 从上面看逆时针
+    return {
+      U: colors.U,
+      D: colors.D,
+      F: colors.R,
+      B: colors.L,
+      L: colors.F,
+      R: colors.B,
+    }
+  }
+}
+
+/**
+ * 绕z轴旋转cubie颜色（F/B面旋转）
+ * 顺时针（从前面看）：U->L->D->R->U
+ * 逆时针（从前面看）：U->R->D->L->U
+ */
+function rotateColorsAroundZAxis(colors: CubieColors, clockwise: boolean): CubieColors {
+  if (clockwise) {
+    // 从前面看顺时针
+    return {
+      U: colors.L,
+      D: colors.R,
+      F: colors.F,
+      B: colors.B,
+      L: colors.D,
+      R: colors.U,
+    }
+  } else {
+    // 从前面看逆时针
+    return {
+      U: colors.R,
+      D: colors.L,
+      F: colors.F,
+      B: colors.B,
+      L: colors.U,
+      R: colors.D,
+    }
+  }
+}
+
+/**
  * 通过position查找corner cubie
  */
 function findCornerByPosition(state: CubieBasedCubeState, position: CornerCubieId): CornerCubieId {
@@ -238,10 +322,10 @@ function findCornerByPosition(state: CubieBasedCubeState, position: CornerCubieI
 }
 
 /**
- * 旋转角块循环
+ * 旋转角块循环（简化版本：只替换位置，不旋转颜色）
  * @param state 状态
  * @param cycle 循环顺序，例如 ['UFR', 'DFR', 'DBR', 'UBR'] 表示 UFR位置 -> DFR位置 -> DBR位置 -> UBR位置 -> UFR位置
- * @param clockwise 是否顺时针（影响orientation的变化）
+ * @param clockwise 是否顺时针（影响循环方向）
  */
 function cycleCorners(
   state: CubieBasedCubeState,
@@ -250,7 +334,6 @@ function cycleCorners(
 ): void {
   // 找到每个位置上的cubie id
   const cubieIds: CornerCubieId[] = cycle.map(pos => findCornerByPosition(state, pos))
-  const orientations: (0 | 1 | 2)[] = cubieIds.map(id => state.corners[id].orientation)
 
   // 移动位置
   for (let i = 0; i < cycle.length; i++) {
@@ -260,15 +343,6 @@ function cycleCorners(
     
     // 更新位置
     state.corners[cubieId].position = nextPosition
-    
-    // 更新方向：角块每转一次，orientation + 1 (顺时针) 或 - 1 (逆时针)
-    // 注意：这里使用的是移动前的orientation，因为我们要基于当前状态计算新orientation
-    const currentOrientation = orientations[i]
-    if (clockwise) {
-      state.corners[cubieId].orientation = ((currentOrientation + 1) % 3) as 0 | 1 | 2
-    } else {
-      state.corners[cubieId].orientation = ((currentOrientation - 1 + 3) % 3) as 0 | 1 | 2
-    }
   }
 }
 
@@ -285,10 +359,10 @@ function findEdgeByPosition(state: CubieBasedCubeState, position: EdgeCubieId): 
 }
 
 /**
- * 旋转边块循环
+ * 旋转边块循环（简化版本：只替换位置，不旋转颜色）
  * @param state 状态
  * @param cycle 循环顺序
- * @param clockwise 是否顺时针（影响orientation的变化）
+ * @param clockwise 是否顺时针（影响循环方向）
  */
 function cycleEdges(
   state: CubieBasedCubeState,
@@ -297,7 +371,6 @@ function cycleEdges(
 ): void {
   // 找到每个位置上的cubie id
   const cubieIds: EdgeCubieId[] = cycle.map(pos => findEdgeByPosition(state, pos))
-  const orientations: (0 | 1)[] = cubieIds.map(id => state.edges[id].orientation)
 
   // 移动位置
   for (let i = 0; i < cycle.length; i++) {
@@ -307,84 +380,117 @@ function cycleEdges(
     
     // 更新位置
     state.edges[cubieId].position = nextPosition
-    
-    // 更新方向：边块每转一次，orientation翻转（0变1，1变0）
-    state.edges[cubieId].orientation = orientations[i] === 0 ? 1 : 0
   }
 }
 
 /**
- * R面顺时针旋转
- * 根据旧代码：U的右列 → F的右列 → D的右列 → B的左列 → U的右列
- * 这意味着：
- * - UFR位置上的cubie -> DFR位置
- * - DFR位置上的cubie -> DBR位置  
- * - DBR位置上的cubie -> UBR位置
- * - UBR位置上的cubie -> UFR位置
- * 
- * 但是，从R面看（从右侧看），顺时针旋转应该是：
- * - 上面的角块（UFR）-> 前面的角块（DFR）
- * - 前面的角块（DFR）-> 下面的角块（DBR）
- * - 下面的角块（DBR）-> 后面的角块（UBR）
- * - 后面的角块（UBR）-> 上面的角块（UFR）
- * 
- * 所以循环顺序应该是：UFR -> DFR -> DBR -> UBR -> UFR
- * 但是，如果从标准视角看（从前面看），R面顺时针旋转应该是逆时针的循环
- * 
- * 让我检查一下：从前面看R面，顺时针旋转时：
- * - UFR -> UBR -> DBR -> DFR -> UFR（这是从前面看的顺时针）
- * 
- * 但是从R面自己看，顺时针旋转应该是：
- * - UFR -> DFR -> DBR -> UBR -> UFR
- * 
- * 根据旧代码的实现，应该是：UFR -> DFR -> DBR -> UBR -> UFR
+ * 旋转指定cubie的颜色（用于旋转操作后的颜色旋转）
+ */
+function rotateCornerColors(
+  state: CubieBasedCubeState,
+  cornerId: CornerCubieId,
+  rotateFn: (colors: CubieColors, clockwise: boolean) => CubieColors,
+  clockwise: boolean
+): void {
+  state.corners[cornerId].colors = rotateFn(state.corners[cornerId].colors, clockwise)
+}
+
+/**
+ * 旋转指定cubie的颜色（用于旋转操作后的颜色旋转）
+ */
+function rotateEdgeColors(
+  state: CubieBasedCubeState,
+  edgeId: EdgeCubieId,
+  rotateFn: (colors: CubieColors, clockwise: boolean) => CubieColors,
+  clockwise: boolean
+): void {
+  state.edges[edgeId].colors = rotateFn(state.edges[edgeId].colors, clockwise)
+}
+
+/**
+ * R面顺时针旋转（绕x轴顺时针90度）
+ * 第一步：替换位置
+ *   - 角块循环：UFR -> DFR -> DBR -> UBR -> UFR
+ *   - 边块循环：UR -> FR -> DR -> BR -> UR
+ * 第二步：旋转颜色（绕x轴顺时针90度）
  */
 export function rotateR(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  // 根据旧代码：U的右列 → F的右列 → D的右列 → B的左列 → U的右列
-  // 这意味着：UFR位置 -> DFR位置 -> DBR位置 -> UBR位置 -> UFR位置
-  // 但是，如果看起来是逆时针，可能需要反转循环顺序
-  // 从R面看（从右侧看），顺时针旋转应该是：UFR -> DFR -> DBR -> UBR -> UFR
-  // 但如果从前面看，顺时针旋转应该是逆时针的循环：UBR -> UFR -> DFR -> DBR -> UBR
-  // 尝试反转循环顺序，同时保持clockwise=true（这样orientation的计算方向也会相应调整）
-  cycleCorners(newState, ['UBR', 'UFR', 'DFR', 'DBR'], true)
+  // 第一步：替换位置
+  const cornerCycle: CornerCubieId[] = ['UFR', 'DFR', 'DBR', 'UBR']
+  const edgeCycle: EdgeCubieId[] = ['UR', 'FR', 'DR', 'BR']
   
-  // 边块循环：UR -> FR -> DR -> BR -> UR
-  // 同样反转：BR -> UR -> FR -> DR -> BR
-  cycleEdges(newState, ['BR', 'UR', 'FR', 'DR'], true)
+  cycleCorners(newState, cornerCycle, true)
+  cycleEdges(newState, edgeCycle, true)
+  
+  // 第二步：旋转颜色（绕x轴顺时针90度）
+  // 找到旋转后的cubie ID（位置已经改变）
+  const rotatedCornerIds = cornerCycle.map(pos => findCornerByPosition(newState, pos))
+  const rotatedEdgeIds = edgeCycle.map(pos => findEdgeByPosition(newState, pos))
+  
+  for (const cornerId of rotatedCornerIds) {
+    rotateCornerColors(newState, cornerId, rotateColorsAroundXAxis, true)
+  }
+  for (const edgeId of rotatedEdgeIds) {
+    rotateEdgeColors(newState, edgeId, rotateColorsAroundXAxis, true)
+  }
   
   return newState
 }
 
 /**
- * R'面逆时针旋转
+ * R'面逆时针旋转（绕x轴逆时针90度）
+ * 第一步：替换位置（逆时针）
+ * 第二步：旋转颜色（绕x轴逆时针90度）
  */
 export function rotateRPrime(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  // 角块循环（逆时针）
-  cycleCorners(newState, ['UFR', 'DFR', 'DBR', 'UBR'], false)
+  // 第一步：替换位置
+  const cornerCycle: CornerCubieId[] = ['UFR', 'DFR', 'DBR', 'UBR']
+  const edgeCycle: EdgeCubieId[] = ['UR', 'FR', 'DR', 'BR']
   
-  // 边块循环（逆时针）
-  cycleEdges(newState, ['UR', 'FR', 'DR', 'BR'], false)
+  cycleCorners(newState, cornerCycle, false)
+  cycleEdges(newState, edgeCycle, false)
+  
+  // 第二步：旋转颜色（绕x轴逆时针90度）
+  const rotatedCornerIds = cornerCycle.map(pos => findCornerByPosition(newState, pos))
+  const rotatedEdgeIds = edgeCycle.map(pos => findEdgeByPosition(newState, pos))
+  
+  for (const cornerId of rotatedCornerIds) {
+    rotateCornerColors(newState, cornerId, rotateColorsAroundXAxis, false)
+  }
+  for (const edgeId of rotatedEdgeIds) {
+    rotateEdgeColors(newState, edgeId, rotateColorsAroundXAxis, false)
+  }
   
   return newState
 }
 
 /**
- * L面顺时针旋转
- * 角块循环：UFL -> DBL -> DFL -> UBL -> UFL（从L面看是顺时针）
- * 边块循环：UL -> BL -> DL -> FL -> UL
+ * L面顺时针旋转（绕x轴逆时针90度，从标准视角看）
+ * 第一步：替换位置
+ * 第二步：旋转颜色（绕x轴逆时针90度）
  */
 export function rotateL(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  // 角块循环（从L面看顺时针，从标准视角看是逆时针）
-  cycleCorners(newState, ['UFL', 'UBL', 'DBL', 'DFL'], true)
+  const cornerCycle: CornerCubieId[] = ['UFL', 'UBL', 'DBL', 'DFL']
+  const edgeCycle: EdgeCubieId[] = ['UL', 'BL', 'DL', 'FL']
   
-  // 边块循环
-  cycleEdges(newState, ['UL', 'BL', 'DL', 'FL'], true)
+  cycleCorners(newState, cornerCycle, true)
+  cycleEdges(newState, edgeCycle, true)
+  
+  const rotatedCornerIds = cornerCycle.map(pos => findCornerByPosition(newState, pos))
+  const rotatedEdgeIds = edgeCycle.map(pos => findEdgeByPosition(newState, pos))
+  
+  for (const cornerId of rotatedCornerIds) {
+    rotateCornerColors(newState, cornerId, rotateColorsAroundXAxis, false)
+  }
+  for (const edgeId of rotatedEdgeIds) {
+    rotateEdgeColors(newState, edgeId, rotateColorsAroundXAxis, false)
+  }
   
   return newState
 }
@@ -395,25 +501,48 @@ export function rotateL(state: CubieBasedCubeState): CubieBasedCubeState {
 export function rotateLPrime(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  cycleCorners(newState, ['UFL', 'UBL', 'DBL', 'DFL'], false)
-  cycleEdges(newState, ['UL', 'BL', 'DL', 'FL'], false)
+  const cornerCycle: CornerCubieId[] = ['UFL', 'UBL', 'DBL', 'DFL']
+  const edgeCycle: EdgeCubieId[] = ['UL', 'BL', 'DL', 'FL']
+  
+  cycleCorners(newState, cornerCycle, false)
+  cycleEdges(newState, edgeCycle, false)
+  
+  const rotatedCornerIds = cornerCycle.map(pos => findCornerByPosition(newState, pos))
+  const rotatedEdgeIds = edgeCycle.map(pos => findEdgeByPosition(newState, pos))
+  
+  for (const cornerId of rotatedCornerIds) {
+    rotateCornerColors(newState, cornerId, rotateColorsAroundXAxis, true)
+  }
+  for (const edgeId of rotatedEdgeIds) {
+    rotateEdgeColors(newState, edgeId, rotateColorsAroundXAxis, true)
+  }
   
   return newState
 }
 
 /**
- * U面顺时针旋转
- * 角块循环：UFR -> UBR -> UBL -> UFL -> UFR
- * 边块循环：UF -> UR -> UB -> UL -> UF
+ * U面顺时针旋转（绕y轴逆时针90度，从上面看）
+ * 第一步：替换位置
+ * 第二步：旋转颜色（绕y轴逆时针90度）
  */
 export function rotateU(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  // 角块循环（顺时针）
-  cycleCorners(newState, ['UFR', 'UBR', 'UBL', 'UFL'], true)
+  const cornerCycle: CornerCubieId[] = ['UFR', 'UBR', 'UBL', 'UFL']
+  const edgeCycle: EdgeCubieId[] = ['UF', 'UR', 'UB', 'UL']
   
-  // 边块循环（顺时针）
-  cycleEdges(newState, ['UF', 'UR', 'UB', 'UL'], true)
+  cycleCorners(newState, cornerCycle, true)
+  cycleEdges(newState, edgeCycle, true)
+  
+  const rotatedCornerIds = cornerCycle.map(pos => findCornerByPosition(newState, pos))
+  const rotatedEdgeIds = edgeCycle.map(pos => findEdgeByPosition(newState, pos))
+  
+  for (const cornerId of rotatedCornerIds) {
+    rotateCornerColors(newState, cornerId, rotateColorsAroundYAxis, false)
+  }
+  for (const edgeId of rotatedEdgeIds) {
+    rotateEdgeColors(newState, edgeId, rotateColorsAroundYAxis, false)
+  }
   
   return newState
 }
@@ -424,25 +553,48 @@ export function rotateU(state: CubieBasedCubeState): CubieBasedCubeState {
 export function rotateUPrime(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  cycleCorners(newState, ['UFR', 'UBR', 'UBL', 'UFL'], false)
-  cycleEdges(newState, ['UF', 'UR', 'UB', 'UL'], false)
+  const cornerCycle: CornerCubieId[] = ['UFR', 'UBR', 'UBL', 'UFL']
+  const edgeCycle: EdgeCubieId[] = ['UF', 'UR', 'UB', 'UL']
+  
+  cycleCorners(newState, cornerCycle, false)
+  cycleEdges(newState, edgeCycle, false)
+  
+  const rotatedCornerIds = cornerCycle.map(pos => findCornerByPosition(newState, pos))
+  const rotatedEdgeIds = edgeCycle.map(pos => findEdgeByPosition(newState, pos))
+  
+  for (const cornerId of rotatedCornerIds) {
+    rotateCornerColors(newState, cornerId, rotateColorsAroundYAxis, true)
+  }
+  for (const edgeId of rotatedEdgeIds) {
+    rotateEdgeColors(newState, edgeId, rotateColorsAroundYAxis, true)
+  }
   
   return newState
 }
 
 /**
- * D面顺时针旋转
- * 角块循环：DFR -> DFL -> DBL -> DBR -> DFR
- * 边块循环：DF -> DL -> DB -> DR -> DF
+ * D面顺时针旋转（绕y轴顺时针90度，从下面看）
+ * 第一步：替换位置
+ * 第二步：旋转颜色（绕y轴顺时针90度）
  */
 export function rotateD(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  // 角块循环（顺时针）
-  cycleCorners(newState, ['DFR', 'DFL', 'DBL', 'DBR'], true)
+  const cornerCycle: CornerCubieId[] = ['DFR', 'DFL', 'DBL', 'DBR']
+  const edgeCycle: EdgeCubieId[] = ['DF', 'DL', 'DB', 'DR']
   
-  // 边块循环（顺时针）
-  cycleEdges(newState, ['DF', 'DL', 'DB', 'DR'], true)
+  cycleCorners(newState, cornerCycle, true)
+  cycleEdges(newState, edgeCycle, true)
+  
+  const rotatedCornerIds = cornerCycle.map(pos => findCornerByPosition(newState, pos))
+  const rotatedEdgeIds = edgeCycle.map(pos => findEdgeByPosition(newState, pos))
+  
+  for (const cornerId of rotatedCornerIds) {
+    rotateCornerColors(newState, cornerId, rotateColorsAroundYAxis, true)
+  }
+  for (const edgeId of rotatedEdgeIds) {
+    rotateEdgeColors(newState, edgeId, rotateColorsAroundYAxis, true)
+  }
   
   return newState
 }
@@ -453,25 +605,48 @@ export function rotateD(state: CubieBasedCubeState): CubieBasedCubeState {
 export function rotateDPrime(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  cycleCorners(newState, ['DFR', 'DFL', 'DBL', 'DBR'], false)
-  cycleEdges(newState, ['DF', 'DL', 'DB', 'DR'], false)
+  const cornerCycle: CornerCubieId[] = ['DFR', 'DFL', 'DBL', 'DBR']
+  const edgeCycle: EdgeCubieId[] = ['DF', 'DL', 'DB', 'DR']
+  
+  cycleCorners(newState, cornerCycle, false)
+  cycleEdges(newState, edgeCycle, false)
+  
+  const rotatedCornerIds = cornerCycle.map(pos => findCornerByPosition(newState, pos))
+  const rotatedEdgeIds = edgeCycle.map(pos => findEdgeByPosition(newState, pos))
+  
+  for (const cornerId of rotatedCornerIds) {
+    rotateCornerColors(newState, cornerId, rotateColorsAroundYAxis, false)
+  }
+  for (const edgeId of rotatedEdgeIds) {
+    rotateEdgeColors(newState, edgeId, rotateColorsAroundYAxis, false)
+  }
   
   return newState
 }
 
 /**
- * F面顺时针旋转
- * 角块循环：UFR -> UFL -> DFL -> DFR -> UFR
- * 边块循环：UF -> FL -> DF -> FR -> UF
+ * F面顺时针旋转（绕z轴顺时针90度，从前面看）
+ * 第一步：替换位置
+ * 第二步：旋转颜色（绕z轴顺时针90度）
  */
 export function rotateF(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  // 角块循环（顺时针）
-  cycleCorners(newState, ['UFR', 'UFL', 'DFL', 'DFR'], true)
+  const cornerCycle: CornerCubieId[] = ['UFR', 'UFL', 'DFL', 'DFR']
+  const edgeCycle: EdgeCubieId[] = ['UF', 'FL', 'DF', 'FR']
   
-  // 边块循环（顺时针）
-  cycleEdges(newState, ['UF', 'FL', 'DF', 'FR'], true)
+  cycleCorners(newState, cornerCycle, true)
+  cycleEdges(newState, edgeCycle, true)
+  
+  const rotatedCornerIds = cornerCycle.map(pos => findCornerByPosition(newState, pos))
+  const rotatedEdgeIds = edgeCycle.map(pos => findEdgeByPosition(newState, pos))
+  
+  for (const cornerId of rotatedCornerIds) {
+    rotateCornerColors(newState, cornerId, rotateColorsAroundZAxis, true)
+  }
+  for (const edgeId of rotatedEdgeIds) {
+    rotateEdgeColors(newState, edgeId, rotateColorsAroundZAxis, true)
+  }
   
   return newState
 }
@@ -482,25 +657,48 @@ export function rotateF(state: CubieBasedCubeState): CubieBasedCubeState {
 export function rotateFPrime(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  cycleCorners(newState, ['UFR', 'UFL', 'DFL', 'DFR'], false)
-  cycleEdges(newState, ['UF', 'FL', 'DF', 'FR'], false)
+  const cornerCycle: CornerCubieId[] = ['UFR', 'UFL', 'DFL', 'DFR']
+  const edgeCycle: EdgeCubieId[] = ['UF', 'FL', 'DF', 'FR']
+  
+  cycleCorners(newState, cornerCycle, false)
+  cycleEdges(newState, edgeCycle, false)
+  
+  const rotatedCornerIds = cornerCycle.map(pos => findCornerByPosition(newState, pos))
+  const rotatedEdgeIds = edgeCycle.map(pos => findEdgeByPosition(newState, pos))
+  
+  for (const cornerId of rotatedCornerIds) {
+    rotateCornerColors(newState, cornerId, rotateColorsAroundZAxis, false)
+  }
+  for (const edgeId of rotatedEdgeIds) {
+    rotateEdgeColors(newState, edgeId, rotateColorsAroundZAxis, false)
+  }
   
   return newState
 }
 
 /**
- * B面顺时针旋转
- * 角块循环：UBR -> UBL -> DBL -> DBR -> UBR
- * 边块循环：UB -> BR -> DB -> BL -> UB
+ * B面顺时针旋转（绕z轴逆时针90度，从前面看）
+ * 第一步：替换位置
+ * 第二步：旋转颜色（绕z轴逆时针90度）
  */
 export function rotateB(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  // 角块循环（顺时针）
-  cycleCorners(newState, ['UBR', 'UBL', 'DBL', 'DBR'], true)
+  const cornerCycle: CornerCubieId[] = ['UBR', 'UBL', 'DBL', 'DBR']
+  const edgeCycle: EdgeCubieId[] = ['UB', 'BR', 'DB', 'BL']
   
-  // 边块循环（顺时针）
-  cycleEdges(newState, ['UB', 'BR', 'DB', 'BL'], true)
+  cycleCorners(newState, cornerCycle, true)
+  cycleEdges(newState, edgeCycle, true)
+  
+  const rotatedCornerIds = cornerCycle.map(pos => findCornerByPosition(newState, pos))
+  const rotatedEdgeIds = edgeCycle.map(pos => findEdgeByPosition(newState, pos))
+  
+  for (const cornerId of rotatedCornerIds) {
+    rotateCornerColors(newState, cornerId, rotateColorsAroundZAxis, false)
+  }
+  for (const edgeId of rotatedEdgeIds) {
+    rotateEdgeColors(newState, edgeId, rotateColorsAroundZAxis, false)
+  }
   
   return newState
 }
@@ -511,8 +709,21 @@ export function rotateB(state: CubieBasedCubeState): CubieBasedCubeState {
 export function rotateBPrime(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  cycleCorners(newState, ['UBR', 'UBL', 'DBL', 'DBR'], false)
-  cycleEdges(newState, ['UB', 'BR', 'DB', 'BL'], false)
+  const cornerCycle: CornerCubieId[] = ['UBR', 'UBL', 'DBL', 'DBR']
+  const edgeCycle: EdgeCubieId[] = ['UB', 'BR', 'DB', 'BL']
+  
+  cycleCorners(newState, cornerCycle, false)
+  cycleEdges(newState, edgeCycle, false)
+  
+  const rotatedCornerIds = cornerCycle.map(pos => findCornerByPosition(newState, pos))
+  const rotatedEdgeIds = edgeCycle.map(pos => findEdgeByPosition(newState, pos))
+  
+  for (const cornerId of rotatedCornerIds) {
+    rotateCornerColors(newState, cornerId, rotateColorsAroundZAxis, true)
+  }
+  for (const edgeId of rotatedEdgeIds) {
+    rotateEdgeColors(newState, edgeId, rotateColorsAroundZAxis, true)
+  }
   
   return newState
 }
@@ -575,7 +786,7 @@ function getCornerFaceOrder(cornerId: CornerCubieId): Face[] {
 }
 
 /**
- * 获取corner cubie在指定位置时，各个面的颜色
+ * 获取corner cubie在指定位置时，各个面的颜色（简化版本：直接从colors读取）
  * @param corner 角块
  * @param position 当前位置
  * @returns 各个面的颜色映射
@@ -584,28 +795,14 @@ function getCornerFaceColors(corner: CornerCubie, position: CornerCubieId): Part
   // 获取position对应的面（按照固定顺序）
   const positionFaces = getCornerFaceOrder(position)
   
-  // 获取原始颜色的面（按照固定顺序）
-  const originalFaces = getCornerFaceOrder(corner.id)
-
-  // 根据orientation旋转颜色映射
-  // orientation = 0: 原始顺序 (originalFaces[0] -> positionFaces[0], originalFaces[1] -> positionFaces[1], originalFaces[2] -> positionFaces[2])
-  // orientation = 1: 顺时针转一次 (originalFaces[0] -> positionFaces[1], originalFaces[1] -> positionFaces[2], originalFaces[2] -> positionFaces[0])
-  // orientation = 2: 顺时针转两次 (originalFaces[0] -> positionFaces[2], originalFaces[1] -> positionFaces[0], originalFaces[2] -> positionFaces[1])
   const result: Partial<Record<Face, FaceColor>> = {}
   
-  for (let i = 0; i < positionFaces.length; i++) {
-    const targetFace = positionFaces[i]
-    // 根据orientation计算源索引
-    // orientation的定义：表示角块需要顺时针旋转多少次才能让原始面的颜色对应到正确的位置
-    // orientation = 0: originalFaces[0] -> positionFaces[0], originalFaces[1] -> positionFaces[1], originalFaces[2] -> positionFaces[2]
-    // orientation = 1: originalFaces[0] -> positionFaces[1], originalFaces[1] -> positionFaces[2], originalFaces[2] -> positionFaces[0]
-    // orientation = 2: originalFaces[0] -> positionFaces[2], originalFaces[1] -> positionFaces[0], originalFaces[2] -> positionFaces[1]
-    // 对于 positionFaces[i]，应该显示 originalFaces[(i - orientation + 3) % 3] 的颜色
-    // 验证：如果orientation=1, i=0，那么sourceIndex=(0-1+3)%3=2，所以originalFaces[0] -> positionFaces[1] ✓
-    const sourceIndex = (i - corner.orientation + 3) % 3
-    const sourceFace = originalFaces[sourceIndex]
-    if (corner.colors[sourceFace]) {
-      result[targetFace] = corner.colors[sourceFace]!
+  // 简化版本：直接从colors读取对应面的颜色
+  for (const face of positionFaces) {
+    const color = corner.colors[face]
+    // 只返回非黑色的颜色（黑色是不可见的面）
+    if (color && color !== 'black') {
+      result[face] = color
     }
   }
 
@@ -613,7 +810,7 @@ function getCornerFaceColors(corner: CornerCubie, position: CornerCubieId): Part
 }
 
 /**
- * 获取edge cubie在指定位置时，各个面的颜色
+ * 获取edge cubie在指定位置时，各个面的颜色（简化版本：直接从colors读取）
  * @param edge 边块
  * @param position 当前位置
  * @returns 各个面的颜色映射
@@ -628,41 +825,14 @@ function getEdgeFaceColors(edge: EdgeCubie, position: EdgeCubieId): Partial<Reco
   if (position.includes('L')) positionFaces.push('L')
   if (position.includes('R')) positionFaces.push('R')
 
-  // 获取原始颜色的面
-  const originalFaces: Face[] = []
-  if (edge.id.includes('U')) originalFaces.push('U')
-  if (edge.id.includes('D')) originalFaces.push('D')
-  if (edge.id.includes('F')) originalFaces.push('F')
-  if (edge.id.includes('B')) originalFaces.push('B')
-  if (edge.id.includes('L')) originalFaces.push('L')
-  if (edge.id.includes('R')) originalFaces.push('R')
-
-  // 根据orientation翻转颜色映射
-  // 确保面的顺序一致（按照U/D, F/B, R/L的优先级排序）
-  const sortedPositionFaces = [...positionFaces].sort((a, b) => {
-    const order: Record<Face, number> = { U: 0, D: 1, F: 2, B: 3, R: 4, L: 5 }
-    return order[a] - order[b]
-  })
-  const sortedOriginalFaces = [...originalFaces].sort((a, b) => {
-    const order: Record<Face, number> = { U: 0, D: 1, F: 2, B: 3, R: 4, L: 5 }
-    return order[a] - order[b]
-  })
-  
   const result: Partial<Record<Face, FaceColor>> = {}
   
-  if (edge.orientation === 0) {
-    // 正常方向：按照排序后的顺序映射
-    for (let i = 0; i < sortedPositionFaces.length; i++) {
-      const posFace = sortedPositionFaces[i]
-      const origFace = sortedOriginalFaces[i]
-      result[posFace] = edge.colors[origFace]
-    }
-  } else {
-    // 翻转方向（orientation = 1）：交换映射
-    for (let i = 0; i < sortedPositionFaces.length; i++) {
-      const posFace = sortedPositionFaces[i]
-      const origFace = sortedOriginalFaces[(i + 1) % sortedOriginalFaces.length]
-      result[posFace] = edge.colors[origFace]
+  // 简化版本：直接从colors读取对应面的颜色
+  for (const face of positionFaces) {
+    const color = edge.colors[face]
+    // 只返回非黑色的颜色（黑色是不可见的面）
+    if (color && color !== 'black') {
+      result[face] = color
     }
   }
 

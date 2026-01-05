@@ -67,20 +67,22 @@ export function solveByIDAStar(cubieBasedState: CubieBasedCubeState, maxDepth: n
     let diff = 0
     const solved = createSolvedCubieBasedCube()
     
-    // 检查角块
+    // 检查角块（简化版本：只检查位置，不检查orientation）
     for (const [id, corner] of Object.entries(state.corners)) {
       const solvedCorner = solved.corners[id as keyof typeof solved.corners]
-      if (corner.position !== solvedCorner.position || corner.orientation !== solvedCorner.orientation) {
+      if (corner.position !== solvedCorner.position) {
         diff++
       }
+      // 注意：由于现在使用6个面的颜色，颜色已经在colors中，不需要单独检查orientation
     }
     
-    // 检查边块
+    // 检查边块（简化版本：只检查位置，不检查orientation）
     for (const [id, edge] of Object.entries(state.edges)) {
       const solvedEdge = solved.edges[id as keyof typeof solved.edges]
-      if (edge.position !== solvedEdge.position || edge.orientation !== solvedEdge.orientation) {
+      if (edge.position !== solvedEdge.position) {
         diff++
       }
+      // 注意：由于现在使用6个面的颜色，颜色已经在colors中，不需要单独检查orientation
     }
     
     // 每个错误的块至少需要一步来修复
