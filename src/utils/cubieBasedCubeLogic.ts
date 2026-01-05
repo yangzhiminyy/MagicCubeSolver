@@ -418,12 +418,11 @@ export function rotateR(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
   // 根据旧代码：U的右列 → F的右列 → D的右列 → B的左列 → U的右列
-  // 这意味着：UFR位置 -> DFR位置 -> DBR位置 -> UBR位置 -> UFR位置
-  // 但是，从前面看（标准视角），R面顺时针旋转时，看起来是逆时针循环：UBR -> UFR -> DFR -> DBR -> UBR
-  // 所以我们需要使用clockwise=false，或者反转循环顺序
-  // 尝试：使用反向循环顺序，clockwise=false
-  const cornerCycle: CornerCubieId[] = ['UBR', 'DBR', 'DFR', 'UFR']
-  const edgeCycle: EdgeCubieId[] = ['BR', 'DR', 'FR', 'UR']
+  // 这意味着：UFR位置的cubie -> DFR位置，DFR位置的cubie -> DBR位置，DBR位置的cubie -> UBR位置，UBR位置的cubie -> UFR位置
+  // 循环顺序：UFR -> DFR -> DBR -> UBR -> UFR
+  // 第一步：替换位置（顺时针循环）
+  const cornerCycle: CornerCubieId[] = ['UFR', 'DFR', 'DBR', 'UBR']
+  const edgeCycle: EdgeCubieId[] = ['UR', 'FR', 'DR', 'BR']
   
   cycleCorners(newState, cornerCycle, true)
   cycleEdges(newState, edgeCycle, true)
@@ -433,11 +432,13 @@ export function rotateR(state: CubieBasedCubeState): CubieBasedCubeState {
   const rotatedCornerIds = cornerCycle.map(pos => findCornerByPosition(newState, pos))
   const rotatedEdgeIds = edgeCycle.map(pos => findEdgeByPosition(newState, pos))
   
+  // 注意：颜色旋转方向可能需要调整
+  // 如果变成黑色，可能是旋转方向反了，尝试用false
   for (const cornerId of rotatedCornerIds) {
-    rotateCornerColors(newState, cornerId, rotateColorsAroundXAxis, true)
+    rotateCornerColors(newState, cornerId, rotateColorsAroundXAxis, false)
   }
   for (const edgeId of rotatedEdgeIds) {
-    rotateEdgeColors(newState, edgeId, rotateColorsAroundXAxis, true)
+    rotateEdgeColors(newState, edgeId, rotateColorsAroundXAxis, false)
   }
   
   return newState
