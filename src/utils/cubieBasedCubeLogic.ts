@@ -240,10 +240,12 @@ function cycleCorners(
     state.corners[cubieId].position = nextPosition
     
     // 更新方向：角块每转一次，orientation + 1 (顺时针) 或 - 1 (逆时针)
+    // 注意：这里使用的是移动前的orientation，因为我们要基于当前状态计算新orientation
+    const currentOrientation = orientations[i]
     if (clockwise) {
-      state.corners[cubieId].orientation = ((orientations[i] + 1) % 3) as 0 | 1 | 2
+      state.corners[cubieId].orientation = ((currentOrientation + 1) % 3) as 0 | 1 | 2
     } else {
-      state.corners[cubieId].orientation = ((orientations[i] - 1 + 3) % 3) as 0 | 1 | 2
+      state.corners[cubieId].orientation = ((currentOrientation - 1 + 3) % 3) as 0 | 1 | 2
     }
   }
 }
@@ -291,16 +293,39 @@ function cycleEdges(
 
 /**
  * R面顺时针旋转
- * 角块循环：UFR -> DFR -> DBR -> UBR -> UFR
- * 边块循环：UR -> FR -> DR -> BR -> UR
+ * 根据旧代码：U的右列 → F的右列 → D的右列 → B的左列 → U的右列
+ * 这意味着：
+ * - UFR位置上的cubie -> DFR位置
+ * - DFR位置上的cubie -> DBR位置  
+ * - DBR位置上的cubie -> UBR位置
+ * - UBR位置上的cubie -> UFR位置
+ * 
+ * 但是，从R面看（从右侧看），顺时针旋转应该是：
+ * - 上面的角块（UFR）-> 前面的角块（DFR）
+ * - 前面的角块（DFR）-> 下面的角块（DBR）
+ * - 下面的角块（DBR）-> 后面的角块（UBR）
+ * - 后面的角块（UBR）-> 上面的角块（UFR）
+ * 
+ * 所以循环顺序应该是：UFR -> DFR -> DBR -> UBR -> UFR
+ * 但是，如果从标准视角看（从前面看），R面顺时针旋转应该是逆时针的循环
+ * 
+ * 让我检查一下：从前面看R面，顺时针旋转时：
+ * - UFR -> UBR -> DBR -> DFR -> UFR（这是从前面看的顺时针）
+ * 
+ * 但是从R面自己看，顺时针旋转应该是：
+ * - UFR -> DFR -> DBR -> UBR -> UFR
+ * 
+ * 根据旧代码的实现，应该是：UFR -> DFR -> DBR -> UBR -> UFR
  */
 export function rotateR(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  // 角块循环（顺时针）
+  // 根据旧代码：U的右列 → F的右列 → D的右列 → B的左列 → U的右列
+  // 这意味着：UFR位置 -> DFR位置 -> DBR位置 -> UBR位置 -> UFR位置
+  // 从R面看（从右侧看），顺时针旋转应该是：UFR -> DFR -> DBR -> UBR -> UFR
   cycleCorners(newState, ['UFR', 'DFR', 'DBR', 'UBR'], true)
   
-  // 边块循环（顺时针）
+  // 边块循环：UR -> FR -> DR -> BR -> UR
   cycleEdges(newState, ['UR', 'FR', 'DR', 'BR'], true)
   
   return newState
@@ -545,10 +570,12 @@ function getCornerFaceColors(corner: CornerCubie, position: CornerCubieId): Part
   for (let i = 0; i < positionFaces.length; i++) {
     const targetFace = positionFaces[i]
     // 根据orientation计算源索引
+    // orientation的定义：表示角块需要顺时针旋转多少次才能让原始面的颜色对应到正确的位置
     // orientation = 0: originalFaces[0] -> positionFaces[0], originalFaces[1] -> positionFaces[1], originalFaces[2] -> positionFaces[2]
     // orientation = 1: originalFaces[0] -> positionFaces[1], originalFaces[1] -> positionFaces[2], originalFaces[2] -> positionFaces[0]
     // orientation = 2: originalFaces[0] -> positionFaces[2], originalFaces[1] -> positionFaces[0], originalFaces[2] -> positionFaces[1]
     // 对于 positionFaces[i]，应该显示 originalFaces[(i - orientation + 3) % 3] 的颜色
+    // 验证：如果orientation=1, i=0，那么sourceIndex=(0-1+3)%3=2，所以originalFaces[0] -> positionFaces[1] ✓
     const sourceIndex = (i - corner.orientation + 3) % 3
     const sourceFace = originalFaces[sourceIndex]
     if (corner.colors[sourceFace]) {
