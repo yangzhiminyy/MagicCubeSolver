@@ -1,5 +1,6 @@
-import { CubeState, Move } from './cubeTypes'
-import { createSolvedCube, applyMove } from './cubeLogic'
+import { Move, CubieBasedCubeState } from './cubeTypes'
+import { createSolvedCubieBasedCube, applyMove, cubieBasedStateToFaceColors } from './cubieBasedCubeLogic'
+import { CubeState } from './cubeTypes'
 import { solveByThistlethwaite as thistlethwaiteSolve } from './thistlethwaite'
 
 // 求解算法类型
@@ -41,11 +42,13 @@ export function solveByReverseMoves(movesToState: Move[]): Move[] {
  * 简单的 IDA* 算法求解
  * 使用迭代加深的 A* 搜索
  */
-export function solveByIDAStar(cubeState: CubeState, maxDepth: number = 20): Move[] {
-  const solvedState = createSolvedCube()
+export function solveByIDAStar(cubieBasedState: CubieBasedCubeState, maxDepth: number = 20): Move[] {
+  const solvedState = createSolvedCubieBasedCube()
+  const cubeState = cubieBasedStateToFaceColors(cubieBasedState)
+  const solvedCubeState = cubieBasedStateToFaceColors(solvedState)
   
   // 检查是否已解决
-  if (JSON.stringify(cubeState) === JSON.stringify(solvedState)) {
+  if (JSON.stringify(cubeState) === JSON.stringify(solvedCubeState)) {
     return []
   }
   
@@ -60,27 +63,33 @@ export function solveByIDAStar(cubeState: CubeState, maxDepth: number = 20): Mov
   ]
   
   // 启发式函数：估计到目标状态的距离
-  function heuristic(state: CubeState): number {
-    // 简单的启发式：计算有多少个面的颜色不一致
+  function heuristic(state: CubieBasedCubeState): number {
+    // 简单的启发式：计算有多少个cubie不在正确位置
     let diff = 0
-    const solved = createSolvedCube()
+    const solved = createSolvedCubieBasedCube()
     
-    for (const face of ['U', 'D', 'F', 'B', 'L', 'R'] as const) {
-      for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 3; col++) {
-          if (state[face][row][col] !== solved[face][row][col]) {
-            diff++
-          }
-        }
+    // 检查角块
+    for (const [id, corner] of Object.entries(state.corners)) {
+      const solvedCorner = solved.corners[id as keyof typeof solved.corners]
+      if (corner.position !== solvedCorner.position || corner.orientation !== solvedCorner.orientation) {
+        diff++
       }
     }
     
-    // 每个错误的块至少需要一步来修复，所以除以9（每个面有9个块，但有些块属于多个面）
-    return Math.ceil(diff / 9)
+    // 检查边块
+    for (const [id, edge] of Object.entries(state.edges)) {
+      const solvedEdge = solved.edges[id as keyof typeof solved.edges]
+      if (edge.position !== solvedEdge.position || edge.orientation !== solvedEdge.orientation) {
+        diff++
+      }
+    }
+    
+    // 每个错误的块至少需要一步来修复
+    return Math.ceil(diff / 2)
   }
   
   // IDA* 搜索
-  function search(state: CubeState, path: Move[], g: number, threshold: number): { found: boolean, path: Move[], nextThreshold: number } {
+  function search(state: CubieBasedCubeState, path: Move[], g: number, threshold: number): { found: boolean, path: Move[], nextThreshold: number } {
     const h = heuristic(state)
     const f = g + h
     
@@ -122,10 +131,10 @@ export function solveByIDAStar(cubeState: CubeState, maxDepth: number = 20): Mov
   }
   
   // 迭代加深
-  let threshold = heuristic(cubeState)
+  let threshold = heuristic(cubieBasedState)
   
   while (threshold <= maxDepth) {
-    const result = search(cubeState, [], 0, threshold)
+    const result = search(cubieBasedState, [], 0, threshold)
     
     if (result.found) {
       return result.path
@@ -177,7 +186,7 @@ export async function solveByThistlethwaite(cubestring: string): Promise<Move[]>
  * 主求解函数，支持多种算法
  */
 export async function solveCube(
-  cubeState: CubeState,
+  cubieBasedState: CubieBasedCubeState,
   algorithm: SolverAlgorithm = 'kociemba',
   movesToState?: Move[]
 ): Promise<Move[]> {
@@ -192,11 +201,13 @@ export async function solveCube(
         
       case 'ida-star':
         // IDA* 算法（较慢但能找到最优解）
-        return solveByIDAStar(cubeState, 20)
+        return solveByIDAStar(cubieBasedState, 20)
         
       case 'thistlethwaite':
         // Thistlethwaite 算法（四阶段算法，异步版本）
         try {
+          // 转换为CubeState格式（Thistlethwaite可能需要）
+          const cubeState = cubieBasedStateToFaceColors(cubieBasedState)
           return await thistlethwaiteSolve(cubeState, 5) // 进一步减少深度
         } catch (error) {
           // 如果 Thistlethwaite 失败，提示用户使用其他算法
@@ -208,7 +219,7 @@ export async function solveCube(
       default:
         // 默认使用 Kociemba 算法
         const { solveCube: kociembaSolve } = await import('./cubeConverter')
-        return await kociembaSolve(cubeState, movesToState)
+        return await kociembaSolve(cubieBasedState, movesToState)
     }
   } catch (error) {
     console.error(`求解失败 (算法: ${algorithm}):`, error)
