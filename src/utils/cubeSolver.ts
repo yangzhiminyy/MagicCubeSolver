@@ -211,9 +211,7 @@ export async function solveCube(
       case 'thistlethwaite':
         // Thistlethwaite 算法（四阶段算法，异步版本）
         try {
-          // 转换为CubeState格式（Thistlethwaite可能需要）
-          const cubeState = cubieBasedStateToFaceColors(cubieBasedState)
-          return await thistlethwaiteSolve(cubeState, 5) // 进一步减少深度
+          return await thistlethwaiteSolve(cubieBasedState, 5) // 进一步减少深度
         } catch (error) {
           // 如果 Thistlethwaite 失败，提示用户使用其他算法
           console.error('Thistlethwaite 算法失败:', error)

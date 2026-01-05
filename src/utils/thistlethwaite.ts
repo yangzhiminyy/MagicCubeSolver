@@ -1,5 +1,5 @@
-import { CubeState, Move } from './cubeTypes'
-import { createSolvedCube, applyMove } from './cubeLogic'
+import { CubieBasedCubeState, Move } from './cubeTypes'
+import { createSolvedCubieBasedCube, applyMove } from './cubieBasedCubeLogic'
 
 /**
  * Thistlethwaite 算法的四个阶段
@@ -48,11 +48,35 @@ const G3_MOVES: Move[] = [
 ]
 
 /**
+ * 比较两个坐标是否相等
+ */
+function coordinatesEqual(coord1: [number, number, number], coord2: [number, number, number]): boolean {
+  return coord1[0] === coord2[0] && coord1[1] === coord2[1] && coord1[2] === coord2[2]
+}
+
+/**
  * 检查是否在阶段 0（已解决状态）
  */
-function isInG0(state: CubeState): boolean {
-  const solved = createSolvedCube()
-  return JSON.stringify(state) === JSON.stringify(solved)
+function isInG0(state: CubieBasedCubeState): boolean {
+  const solved = createSolvedCubieBasedCube()
+  
+  // 检查所有角块坐标
+  for (const [id, corner] of Object.entries(state.corners)) {
+    const solvedCorner = solved.corners[id as keyof typeof solved.corners]
+    if (!coordinatesEqual(corner.coordinate, solvedCorner.coordinate)) {
+      return false
+    }
+  }
+  
+  // 检查所有边块坐标
+  for (const [id, edge] of Object.entries(state.edges)) {
+    const solvedEdge = solved.edges[id as keyof typeof solved.edges]
+    if (!coordinatesEqual(edge.coordinate, solvedEdge.coordinate)) {
+      return false
+    }
+  }
+  
+  return true
 }
 
 /**
@@ -60,7 +84,7 @@ function isInG0(state: CubeState): boolean {
  * 简化版本：检查所有边块是否在正确的位置
  * 注意：这是一个非常简化的实现，完整的 Thistlethwaite 需要检查边块的方向
  */
-function isInG1(_state: CubeState): boolean {
+function isInG1(_state: CubieBasedCubeState): boolean {
   // 简化实现：直接返回 true，跳过这个阶段
   // 因为完整的边块方向检查需要复杂的群论计算
   // 对于简化版本，我们假设所有状态都在 G1
@@ -69,28 +93,16 @@ function isInG1(_state: CubeState): boolean {
 
 /**
  * 检查是否在阶段 2（角块方向正确）
- * 简化版本：检查角块是否在正确的位置和方向
+ * 简化版本：检查角块是否在正确的位置
  */
-function isInG2(state: CubeState): boolean {
+function isInG2(state: CubieBasedCubeState): boolean {
   // 简化实现：检查所有角块是否在正确的位置
-  const solved = createSolvedCube()
+  const solved = createSolvedCubieBasedCube()
   
-  // 检查所有面的角块
-  const corners = [
-    // U面的四个角
-    { face: 'U' as const, row: 0, col: 0 },
-    { face: 'U' as const, row: 0, col: 2 },
-    { face: 'U' as const, row: 2, col: 0 },
-    { face: 'U' as const, row: 2, col: 2 },
-    // D面的四个角
-    { face: 'D' as const, row: 0, col: 0 },
-    { face: 'D' as const, row: 0, col: 2 },
-    { face: 'D' as const, row: 2, col: 0 },
-    { face: 'D' as const, row: 2, col: 2 },
-  ]
-  
-  for (const corner of corners) {
-    if (state[corner.face][corner.row][corner.col] !== solved[corner.face][corner.row][corner.col]) {
+  // 检查所有角块坐标
+  for (const [id, corner] of Object.entries(state.corners)) {
+    const solvedCorner = solved.corners[id as keyof typeof solved.corners]
+    if (!coordinatesEqual(corner.coordinate, solvedCorner.coordinate)) {
       return false
     }
   }
@@ -100,23 +112,15 @@ function isInG2(state: CubeState): boolean {
 
 /**
  * 检查是否在阶段 3（边块位置正确）
- * 极度简化版本：只检查 U 面的中心边块，大幅降低检查难度
+ * 检查所有边块是否在正确的位置
  */
-function isInG3(state: CubeState): boolean {
-  // 极度简化：只检查 U 面的中心边块（row=1, col=1 是中心，检查周围的边）
-  // 这样可以大幅减少搜索空间
-  const solved = createSolvedCube()
+function isInG3(state: CubieBasedCubeState): boolean {
+  const solved = createSolvedCubieBasedCube()
   
-  // 只检查 U 面的中心边块（不包括角块）
-  const edges = [
-    { face: 'U' as const, row: 0, col: 1 }, // 上边
-    { face: 'U' as const, row: 1, col: 0 }, // 左边
-    { face: 'U' as const, row: 1, col: 2 }, // 右边
-    { face: 'U' as const, row: 2, col: 1 }, // 下边
-  ]
-  
-  for (const edge of edges) {
-    if (state[edge.face][edge.row][edge.col] !== solved[edge.face][edge.row][edge.col]) {
+  // 检查所有边块坐标
+  for (const [id, edge] of Object.entries(state.edges)) {
+    const solvedEdge = solved.edges[id as keyof typeof solved.edges]
+    if (!coordinatesEqual(edge.coordinate, solvedEdge.coordinate)) {
       return false
     }
   }
@@ -125,13 +129,30 @@ function isInG3(state: CubeState): boolean {
 }
 
 /**
+ * 生成状态的唯一标识符（用于去重）
+ * 优化：只使用坐标信息，因为ID是固定的
+ */
+function stateKey(state: CubieBasedCubeState): string {
+  // 只使用坐标信息生成唯一标识，更高效
+  const cornerCoords = Object.values(state.corners)
+    .map(corner => corner.coordinate.join(','))
+    .sort()
+    .join('|')
+  const edgeCoords = Object.values(state.edges)
+    .map(edge => edge.coordinate.join(','))
+    .sort()
+    .join('|')
+  return `C:${cornerCoords}|E:${edgeCoords}`
+}
+
+/**
  * 异步 BFS 搜索，用于在特定阶段内寻找解
  * 使用批处理避免阻塞 UI，添加超时机制
  */
 async function searchInGroup(
-  state: CubeState,
+  state: CubieBasedCubeState,
   allowedMoves: Move[],
-  isGoal: (state: CubeState) => boolean,
+  isGoal: (state: CubieBasedCubeState) => boolean,
   maxDepth: number = 6, // 减少默认深度以提高性能
   onProgress?: (depth: number, queueSize: number) => void,
   timeout: number = 30000 // 30秒超时
@@ -142,7 +163,8 @@ async function searchInGroup(
   }
   
   const startTime = Date.now()
-  const queue: Array<{ state: CubeState; path: Move[] }> = [{ state, path: [] }]
+  const queue: Array<{ state: CubieBasedCubeState; path: Move[] }> = [{ state, path: [] }]
+  
   const visited = new Set<string>()
   const BATCH_SIZE = 50 // 减少批处理大小，更频繁地让出控制权
   let totalProcessed = 0
@@ -170,12 +192,12 @@ async function searchInGroup(
       
       for (let i = processed; i < batchEnd && queue.length > 0; i++) {
         const { state: currentState, path } = queue.shift()!
-        const stateKey = JSON.stringify(currentState)
+        const stateKeyStr = stateKey(currentState)
         
-        if (visited.has(stateKey)) {
+        if (visited.has(stateKeyStr)) {
           continue
         }
-        visited.add(stateKey)
+        visited.add(stateKeyStr)
         totalProcessed++
         
         // 尝试所有允许的移动
@@ -227,18 +249,16 @@ async function searchInGroup(
  * 四阶段算法，逐步简化魔方状态
  */
 export async function solveByThistlethwaite(
-  cubeState: CubeState,
+  cubieState: CubieBasedCubeState,
   maxDepthPerStage: number = 6, // 减少默认深度
   onProgress?: (stage: number, depth: number, queueSize: number) => void
 ): Promise<Move[]> {
-  const solvedState = createSolvedCube()
-  
   // 检查是否已解决
-  if (JSON.stringify(cubeState) === JSON.stringify(solvedState)) {
+  if (isInG0(cubieState)) {
     return []
   }
   
-  let currentState = cubeState
+  let currentState = cubieState
   const solution: Move[] = []
   
   // 阶段 0 -> 1: 边块方向正确（简化版本，跳过）
@@ -287,22 +307,22 @@ export async function solveByThistlethwaite(
   
   // 阶段 2 -> 3: 边块位置正确
   if (!isInG3(currentState)) {
-    console.log('Thistlethwaite: 开始阶段 2->3（边块位置，简化检查）')
-    console.log('注意：此阶段可能较慢，如果超过15秒将超时')
+    console.log('Thistlethwaite: 开始阶段 2->3（边块位置）')
+    console.log('注意：此阶段可能较慢，如果超过30秒将超时')
     
-    // 使用更短的超时时间和更小的深度
+    // 使用更长的超时时间和更大的深度
     const path = await searchInGroup(
       currentState,
       G2_MOVES,
       isInG3,
-      Math.min(maxDepthPerStage, 5), // 限制最大深度为5
+      maxDepthPerStage + 2, // 增加深度以提高成功率
       (depth, queueSize) => {
         onProgress?.(2, depth, queueSize)
         if (depth % 1 === 0 && queueSize % 5000 < 100) {
           console.log(`阶段 2->3: 搜索深度 ${depth}, 队列大小: ${queueSize}`)
         }
       },
-      15000 // 15秒超时
+      30000 // 30秒超时
     )
     if (!path) {
       console.warn('Thistlethwaite: 阶段 2->3 超时或未找到解')
@@ -320,21 +340,53 @@ export async function solveByThistlethwaite(
   }
   
   // 阶段 3 -> 4: 完成还原
+  // 注意：阶段3->4只允许180度旋转，搜索空间可能很大
+  // 如果阶段3正确完成，理论上应该能在有限步数内完成
   if (!isInG0(currentState)) {
-    console.log('Thistlethwaite: 开始阶段 3->4')
+    console.log('Thistlethwaite: 开始阶段 3->4（只允许180度旋转）')
+    console.log('注意：此阶段搜索空间较大，可能需要较长时间')
+    
+    // 先尝试较小的深度
     const path = await searchInGroup(
       currentState,
       G3_MOVES,
       isInG0,
-      maxDepthPerStage,
-      (depth, queueSize) => onProgress?.(3, depth, queueSize)
+      maxDepthPerStage + 6, // 增加深度
+      (depth, queueSize) => {
+        onProgress?.(3, depth, queueSize)
+        if (depth % 2 === 0) {
+          console.log(`阶段 3->4: 搜索深度 ${depth}, 队列大小: ${queueSize}`)
+        }
+      },
+      60000 // 60秒超时
     )
     if (!path) {
-      console.warn('Thistlethwaite: 无法完成阶段 3->4')
-      return []
+      console.warn('Thistlethwaite: 无法完成阶段 3->4，尝试增加深度')
+      // 尝试增加深度
+      const path2 = await searchInGroup(
+        currentState,
+        G3_MOVES,
+        isInG0,
+        maxDepthPerStage + 12, // 进一步增加深度
+        (depth, queueSize) => {
+          onProgress?.(3, depth, queueSize)
+          if (depth % 2 === 0) {
+            console.log(`阶段 3->4 (重试): 搜索深度 ${depth}, 队列大小: ${queueSize}`)
+          }
+        },
+        120000 // 120秒超时
+      )
+      if (!path2) {
+        console.warn('Thistlethwaite: 阶段 3->4 失败')
+        console.warn('提示：Thistlethwaite 算法对于某些状态可能较慢，建议使用其他算法（如 Kociemba 或 IDA*）')
+        return []
+      }
+      console.log(`Thistlethwaite: 阶段 3->4 完成，步数: ${path2.length}`)
+      solution.push(...path2)
+    } else {
+      console.log(`Thistlethwaite: 阶段 3->4 完成，步数: ${path.length}`)
+      solution.push(...path)
     }
-    console.log(`Thistlethwaite: 阶段 3->4 完成，步数: ${path.length}`)
-    solution.push(...path)
   }
   
   console.log(`Thistlethwaite: 求解完成，总步数: ${solution.length}`)
