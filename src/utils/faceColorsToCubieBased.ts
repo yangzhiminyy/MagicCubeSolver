@@ -17,8 +17,7 @@ import { createSolvedCubieBasedCube } from './cubieBasedCubeLogic'
  * 4. 确定每个 cubie 的方向（颜色朝向）
  */
 export function faceColorsToCubieBasedState(cubeState: CubeState): CubieBasedCubeState {
-
-  // 2. 创建已解决状态作为基础
+  // 创建已解决状态作为基础
   const solved = createSolvedCubieBasedCube()
   const result: CubieBasedCubeState = {
     corners: {} as Record<CornerCubieId, typeof solved.corners[CornerCubieId]>,
@@ -26,7 +25,7 @@ export function faceColorsToCubieBasedState(cubeState: CubeState): CubieBasedCub
     faces: {} as Record<FaceCubieId, typeof solved.faces[FaceCubieId]>,
   }
 
-  // 3. 设置中心块（根据识别的颜色）
+  // 设置中心块（根据识别的颜色）
   for (const [faceId, face] of Object.entries(solved.faces)) {
     const [x, y, z] = face.coordinate
     let detectedColor: FaceColor = face.color
@@ -45,74 +44,217 @@ export function faceColorsToCubieBasedState(cubeState: CubeState): CubieBasedCub
     }
   }
 
-  // 4. 处理角块：对于每个角块位置，找到匹配的角块
-  const cornerPositions: Array<{ coord: [number, number, number], colors: [FaceColor, FaceColor, FaceColor] }> = [
-    // UFR: [1, 1, 1] -> U面(1,1), F面(1,1), R面(1,1)
-    { coord: [1, 1, 1], colors: [cubeState.U[2][2], cubeState.F[0][2], cubeState.R[0][0]] },
-    // UFL: [-1, 1, 1] -> U面(1,0), F面(1,0), L面(1,2)
-    { coord: [-1, 1, 1], colors: [cubeState.U[2][0], cubeState.F[0][0], cubeState.L[0][2]] },
-    // UBL: [-1, 1, -1] -> U面(0,0), B面(1,0), L面(1,0)
-    { coord: [-1, 1, -1], colors: [cubeState.U[0][0], cubeState.B[0][2], cubeState.L[0][0]] },
-    // UBR: [1, 1, -1] -> U面(0,2), B面(1,2), R面(1,2)
-    { coord: [1, 1, -1], colors: [cubeState.U[0][2], cubeState.B[0][0], cubeState.R[0][2]] },
-    // DFR: [1, -1, 1] -> D面(0,2), F面(2,2), R面(2,0)
-    { coord: [1, -1, 1], colors: [cubeState.D[0][2], cubeState.F[2][2], cubeState.R[2][0]] },
-    // DFL: [-1, -1, 1] -> D面(0,0), F面(2,0), L面(2,2)
-    { coord: [-1, -1, 1], colors: [cubeState.D[0][0], cubeState.F[2][0], cubeState.L[2][2]] },
-    // DBL: [-1, -1, -1] -> D面(2,0), B面(2,0), L面(2,0)
-    { coord: [-1, -1, -1], colors: [cubeState.D[2][0], cubeState.B[2][2], cubeState.L[2][0]] },
-    // DBR: [1, -1, -1] -> D面(2,2), B面(2,2), R面(2,2)
-    { coord: [1, -1, -1], colors: [cubeState.D[2][2], cubeState.B[2][0], cubeState.R[2][2]] },
+  // 处理角块：对于每个角块位置，找到匹配的角块
+  // 根据 cubieBasedStateToFaceColors 的映射：
+  // U面: row = z+1, col = x+1
+  // D面: row = 1-z, col = x+1
+  // F面: row = 1-y, col = x+1
+  // B面: row = 1-y, col = 1-x
+  // R面: row = 1-y, col = 1-z
+  // L面: row = 1-y, col = z+1
+  const cornerPositions: Array<{ 
+    coord: [number, number, number], 
+    faceColors: { U?: FaceColor, D?: FaceColor, F?: FaceColor, B?: FaceColor, R?: FaceColor, L?: FaceColor }
+  }> = [
+    // UFR: [1, 1, 1]
+    { 
+      coord: [1, 1, 1], 
+      faceColors: {
+        U: cubeState.U[1 + 1][1 + 1], // row=z+1=2, col=x+1=2
+        F: cubeState.F[1 - 1][1 + 1], // row=1-y=0, col=x+1=2
+        R: cubeState.R[1 - 1][1 - 1], // row=1-y=0, col=1-z=0
+      }
+    },
+    // UFL: [-1, 1, 1]
+    { 
+      coord: [-1, 1, 1], 
+      faceColors: {
+        U: cubeState.U[1 + 1][-1 + 1], // row=z+1=2, col=x+1=0
+        F: cubeState.F[1 - 1][-1 + 1], // row=1-y=0, col=x+1=0
+        L: cubeState.L[1 - 1][1 + 1], // row=1-y=0, col=z+1=2
+      }
+    },
+    // UBL: [-1, 1, -1]
+    { 
+      coord: [-1, 1, -1], 
+      faceColors: {
+        U: cubeState.U[-1 + 1][-1 + 1], // row=z+1=0, col=x+1=0
+        B: cubeState.B[1 - 1][1 - (-1)], // row=1-y=0, col=1-x=2
+        L: cubeState.L[1 - 1][-1 + 1], // row=1-y=0, col=z+1=0
+      }
+    },
+    // UBR: [1, 1, -1]
+    { 
+      coord: [1, 1, -1], 
+      faceColors: {
+        U: cubeState.U[-1 + 1][1 + 1], // row=z+1=0, col=x+1=2
+        B: cubeState.B[1 - 1][1 - 1], // row=1-y=0, col=1-x=0
+        R: cubeState.R[1 - 1][1 - (-1)], // row=1-y=0, col=1-z=2
+      }
+    },
+    // DFR: [1, -1, 1]
+    { 
+      coord: [1, -1, 1], 
+      faceColors: {
+        D: cubeState.D[1 - 1][1 + 1], // row=1-z=0, col=x+1=2
+        F: cubeState.F[1 - (-1)][1 + 1], // row=1-y=2, col=x+1=2
+        R: cubeState.R[1 - (-1)][1 - 1], // row=1-y=2, col=1-z=0
+      }
+    },
+    // DFL: [-1, -1, 1]
+    { 
+      coord: [-1, -1, 1], 
+      faceColors: {
+        D: cubeState.D[1 - 1][-1 + 1], // row=1-z=0, col=x+1=0
+        F: cubeState.F[1 - (-1)][-1 + 1], // row=1-y=2, col=x+1=0
+        L: cubeState.L[1 - (-1)][1 + 1], // row=1-y=2, col=z+1=2
+      }
+    },
+    // DBL: [-1, -1, -1]
+    { 
+      coord: [-1, -1, -1], 
+      faceColors: {
+        D: cubeState.D[1 - (-1)][-1 + 1], // row=1-z=2, col=x+1=0
+        B: cubeState.B[1 - (-1)][1 - (-1)], // row=1-y=2, col=1-x=2
+        L: cubeState.L[1 - (-1)][-1 + 1], // row=1-y=2, col=z+1=0
+      }
+    },
+    // DBR: [1, -1, -1]
+    { 
+      coord: [1, -1, -1], 
+      faceColors: {
+        D: cubeState.D[1 - (-1)][1 + 1], // row=1-z=2, col=x+1=2
+        B: cubeState.B[1 - (-1)][1 - 1], // row=1-y=2, col=1-x=0
+        R: cubeState.R[1 - (-1)][1 - (-1)], // row=1-y=2, col=1-z=2
+      }
+    },
   ]
 
   // 为每个位置找到匹配的角块
   for (const pos of cornerPositions) {
-    const matchingCorner = findMatchingCorner(pos.colors, solved.corners, result.corners)
+    const targetColors = Object.values(pos.faceColors).filter(c => c !== undefined) as FaceColor[]
+    const matchingCorner = findMatchingCorner(targetColors, solved.corners, result.corners)
     if (matchingCorner) {
       result.corners[matchingCorner.id] = {
         ...matchingCorner,
         coordinate: pos.coord,
-        colors: adjustCornerColors(matchingCorner.colors, pos.colors, pos.coord),
+        colors: adjustCornerColors(matchingCorner.colors, pos.faceColors, pos.coord),
       }
     }
   }
 
-  // 5. 处理边块：对于每个边块位置，找到匹配的边块
-  const edgePositions: Array<{ coord: [number, number, number], colors: [FaceColor, FaceColor] }> = [
-    // UF: [0, 1, 1] -> U面(1,1), F面(0,1)
-    { coord: [0, 1, 1], colors: [cubeState.U[2][1], cubeState.F[0][1]] },
-    // UR: [1, 1, 0] -> U面(1,2), R面(0,1)
-    { coord: [1, 1, 0], colors: [cubeState.U[1][2], cubeState.R[0][1]] },
-    // UB: [0, 1, -1] -> U面(0,1), B面(0,1)
-    { coord: [0, 1, -1], colors: [cubeState.U[0][1], cubeState.B[0][1]] },
-    // UL: [-1, 1, 0] -> U面(1,0), L面(0,1)
-    { coord: [-1, 1, 0], colors: [cubeState.U[1][0], cubeState.L[0][1]] },
-    // DF: [0, -1, 1] -> D面(0,1), F面(2,1)
-    { coord: [0, -1, 1], colors: [cubeState.D[0][1], cubeState.F[2][1]] },
-    // DR: [1, -1, 0] -> D面(1,2), R面(2,1)
-    { coord: [1, -1, 0], colors: [cubeState.D[1][2], cubeState.R[2][1]] },
-    // DB: [0, -1, -1] -> D面(2,1), B面(2,1)
-    { coord: [0, -1, -1], colors: [cubeState.D[2][1], cubeState.B[2][1]] },
-    // DL: [-1, -1, 0] -> D面(1,0), L面(2,1)
-    { coord: [-1, -1, 0], colors: [cubeState.D[1][0], cubeState.L[2][1]] },
-    // FR: [1, 0, 1] -> F面(1,2), R面(1,0)
-    { coord: [1, 0, 1], colors: [cubeState.F[1][2], cubeState.R[1][0]] },
-    // FL: [-1, 0, 1] -> F面(1,0), L面(1,2)
-    { coord: [-1, 0, 1], colors: [cubeState.F[1][0], cubeState.L[1][2]] },
-    // BR: [1, 0, -1] -> B面(1,0), R面(1,2)
-    { coord: [1, 0, -1], colors: [cubeState.B[1][2], cubeState.R[1][2]] },
-    // BL: [-1, 0, -1] -> B面(1,2), L面(1,0)
-    { coord: [-1, 0, -1], colors: [cubeState.B[1][0], cubeState.L[1][0]] },
+  // 处理边块：对于每个边块位置，找到匹配的边块
+  const edgePositions: Array<{ 
+    coord: [number, number, number], 
+    faceColors: { U?: FaceColor, D?: FaceColor, F?: FaceColor, B?: FaceColor, R?: FaceColor, L?: FaceColor }
+  }> = [
+    // UF: [0, 1, 1]
+    { 
+      coord: [0, 1, 1], 
+      faceColors: {
+        U: cubeState.U[1 + 1][0 + 1], // row=z+1=2, col=x+1=1
+        F: cubeState.F[1 - 1][0 + 1], // row=1-y=0, col=x+1=1
+      }
+    },
+    // UR: [1, 1, 0]
+    { 
+      coord: [1, 1, 0], 
+      faceColors: {
+        U: cubeState.U[0 + 1][1 + 1], // row=z+1=1, col=x+1=2
+        R: cubeState.R[1 - 1][1 - 0], // row=1-y=0, col=1-z=1
+      }
+    },
+    // UB: [0, 1, -1]
+    { 
+      coord: [0, 1, -1], 
+      faceColors: {
+        U: cubeState.U[-1 + 1][0 + 1], // row=z+1=0, col=x+1=1
+        B: cubeState.B[1 - 1][1 - 0], // row=1-y=0, col=1-x=1
+      }
+    },
+    // UL: [-1, 1, 0]
+    { 
+      coord: [-1, 1, 0], 
+      faceColors: {
+        U: cubeState.U[0 + 1][-1 + 1], // row=z+1=1, col=x+1=0
+        L: cubeState.L[1 - 1][0 + 1], // row=1-y=0, col=z+1=1
+      }
+    },
+    // DF: [0, -1, 1]
+    { 
+      coord: [0, -1, 1], 
+      faceColors: {
+        D: cubeState.D[1 - 1][0 + 1], // row=1-z=0, col=x+1=1
+        F: cubeState.F[1 - (-1)][0 + 1], // row=1-y=2, col=x+1=1
+      }
+    },
+    // DR: [1, -1, 0]
+    { 
+      coord: [1, -1, 0], 
+      faceColors: {
+        D: cubeState.D[1 - 0][1 + 1], // row=1-z=1, col=x+1=2
+        R: cubeState.R[1 - (-1)][1 - 0], // row=1-y=2, col=1-z=1
+      }
+    },
+    // DB: [0, -1, -1]
+    { 
+      coord: [0, -1, -1], 
+      faceColors: {
+        D: cubeState.D[1 - (-1)][0 + 1], // row=1-z=2, col=x+1=1
+        B: cubeState.B[1 - (-1)][1 - 0], // row=1-y=2, col=1-x=1
+      }
+    },
+    // DL: [-1, -1, 0]
+    { 
+      coord: [-1, -1, 0], 
+      faceColors: {
+        D: cubeState.D[1 - 0][-1 + 1], // row=1-z=1, col=x+1=0
+        L: cubeState.L[1 - (-1)][0 + 1], // row=1-y=2, col=z+1=1
+      }
+    },
+    // FR: [1, 0, 1]
+    { 
+      coord: [1, 0, 1], 
+      faceColors: {
+        F: cubeState.F[1 - 0][1 + 1], // row=1-y=1, col=x+1=2
+        R: cubeState.R[1 - 0][1 - 1], // row=1-y=1, col=1-z=0
+      }
+    },
+    // FL: [-1, 0, 1]
+    { 
+      coord: [-1, 0, 1], 
+      faceColors: {
+        F: cubeState.F[1 - 0][-1 + 1], // row=1-y=1, col=x+1=0
+        L: cubeState.L[1 - 0][1 + 1], // row=1-y=1, col=z+1=2
+      }
+    },
+    // BR: [1, 0, -1]
+    { 
+      coord: [1, 0, -1], 
+      faceColors: {
+        B: cubeState.B[1 - 0][1 - 1], // row=1-y=1, col=1-x=0
+        R: cubeState.R[1 - 0][1 - (-1)], // row=1-y=1, col=1-z=2
+      }
+    },
+    // BL: [-1, 0, -1]
+    { 
+      coord: [-1, 0, -1], 
+      faceColors: {
+        B: cubeState.B[1 - 0][1 - (-1)], // row=1-y=1, col=1-x=2
+        L: cubeState.L[1 - 0][-1 + 1], // row=1-y=1, col=z+1=0
+      }
+    },
   ]
 
   // 为每个位置找到匹配的边块
   for (const pos of edgePositions) {
-    const matchingEdge = findMatchingEdge(pos.colors, solved.edges, result.edges)
+    const targetColors = Object.values(pos.faceColors).filter(c => c !== undefined) as FaceColor[]
+    const matchingEdge = findMatchingEdge(targetColors, solved.edges, result.edges)
     if (matchingEdge) {
       result.edges[matchingEdge.id] = {
         ...matchingEdge,
         coordinate: pos.coord,
-        colors: adjustEdgeColors(matchingEdge.colors, pos.colors, pos.coord),
+        colors: adjustEdgeColors(matchingEdge.colors, pos.faceColors, pos.coord),
       }
     }
   }
@@ -124,7 +266,7 @@ export function faceColorsToCubieBasedState(cubeState: CubeState): CubieBasedCub
  * 找到匹配给定颜色的角块
  */
 function findMatchingCorner(
-  targetColors: [FaceColor, FaceColor, FaceColor],
+  targetColors: FaceColor[],
   solvedCorners: Record<CornerCubieId, { id: CornerCubieId, colors: CubieColors }>,
   usedCorners: Record<string, any>
 ): { id: CornerCubieId, colors: CubieColors } | null {
@@ -143,7 +285,7 @@ function findMatchingCorner(
     
     // 检查是否包含所有目标颜色
     const hasAllColors = targetColors.every(tc => cornerColors.includes(tc))
-    if (hasAllColors && cornerColors.length === 3) {
+    if (hasAllColors && cornerColors.length === 3 && targetColors.length === 3) {
       return { id: id as CornerCubieId, colors: corner.colors }
     }
   }
@@ -154,7 +296,7 @@ function findMatchingCorner(
  * 找到匹配给定颜色的边块
  */
 function findMatchingEdge(
-  targetColors: [FaceColor, FaceColor],
+  targetColors: FaceColor[],
   solvedEdges: Record<EdgeCubieId, { id: EdgeCubieId, colors: CubieColors }>,
   usedEdges: Record<string, any>
 ): { id: EdgeCubieId, colors: CubieColors } | null {
@@ -173,7 +315,7 @@ function findMatchingEdge(
     
     // 检查是否包含所有目标颜色
     const hasAllColors = targetColors.every(tc => edgeColors.includes(tc))
-    if (hasAllColors && edgeColors.length === 2) {
+    if (hasAllColors && edgeColors.length === 2 && targetColors.length === 2) {
       return { id: id as EdgeCubieId, colors: edge.colors }
     }
   }
@@ -182,53 +324,76 @@ function findMatchingEdge(
 
 /**
  * 调整角块颜色以匹配当前位置
+ * 根据坐标确定哪些面可见，然后设置对应的颜色
  */
 function adjustCornerColors(
   originalColors: CubieColors,
-  targetColors: [FaceColor, FaceColor, FaceColor],
+  targetFaceColors: { U?: FaceColor, D?: FaceColor, F?: FaceColor, B?: FaceColor, R?: FaceColor, L?: FaceColor },
   coord: [number, number, number]
 ): CubieColors {
   const [x, y, z] = coord
   const result: CubieColors = { ...originalColors }
   
-  // 根据坐标确定哪个面应该显示哪个颜色
-  // UFR [1,1,1]: upper=targetColors[0], front=targetColors[1], right=targetColors[2]
-  // UFL [-1,1,1]: upper=targetColors[0], front=targetColors[1], left=targetColors[2]
-  // 等等...
-  
-  // 简化实现：直接根据坐标映射
-  if (y === 1) result.upper = targetColors[0] // U面
-  if (y === -1) result.down = targetColors.find(c => c !== result.upper && c !== result.front && c !== result.back && c !== result.left && c !== result.right) || targetColors[0]
-  if (z === 1) result.front = targetColors[1] // F面
-  if (z === -1) result.back = targetColors.find(c => c !== result.upper && c !== result.down && c !== result.front && c !== result.left && c !== result.right) || targetColors[1]
-  if (x === 1) result.right = targetColors[2] // R面
-  if (x === -1) result.left = targetColors.find(c => c !== result.upper && c !== result.down && c !== result.front && c !== result.back && c !== result.right) || targetColors[2]
-  
-  // 更准确的实现需要根据角块的实际方向来调整
-  // 这里使用简化版本，实际应该考虑所有可能的旋转
+  // 根据坐标确定哪些面可见，然后设置对应的颜色
+  // y=1 表示在魔方的 U 面，此时 cubie 的 upper 面可见
+  if (y === 1 && targetFaceColors.U) {
+    result.upper = targetFaceColors.U
+  }
+  // y=-1 表示在魔方的 D 面，此时 cubie 的 down 面可见
+  if (y === -1 && targetFaceColors.D) {
+    result.down = targetFaceColors.D
+  }
+  // z=1 表示在魔方的 F 面，此时 cubie 的 front 面可见
+  if (z === 1 && targetFaceColors.F) {
+    result.front = targetFaceColors.F
+  }
+  // z=-1 表示在魔方的 B 面，此时 cubie 的 back 面可见
+  if (z === -1 && targetFaceColors.B) {
+    result.back = targetFaceColors.B
+  }
+  // x=1 表示在魔方的 R 面，此时 cubie 的 right 面可见
+  if (x === 1 && targetFaceColors.R) {
+    result.right = targetFaceColors.R
+  }
+  // x=-1 表示在魔方的 L 面，此时 cubie 的 left 面可见
+  if (x === -1 && targetFaceColors.L) {
+    result.left = targetFaceColors.L
+  }
   
   return result
 }
 
 /**
  * 调整边块颜色以匹配当前位置
+ * 根据坐标确定哪些面可见，然后设置对应的颜色
  */
 function adjustEdgeColors(
   originalColors: CubieColors,
-  targetColors: [FaceColor, FaceColor],
+  targetFaceColors: { U?: FaceColor, D?: FaceColor, F?: FaceColor, B?: FaceColor, R?: FaceColor, L?: FaceColor },
   coord: [number, number, number]
 ): CubieColors {
   const [x, y, z] = coord
   const result: CubieColors = { ...originalColors }
   
-  // 根据坐标确定哪个面应该显示哪个颜色
-  // 简化实现
-  if (y === 1) result.upper = targetColors[0]
-  if (y === -1) result.down = targetColors[0]
-  if (z === 1) result.front = targetColors[1]
-  if (z === -1) result.back = targetColors[1]
-  if (x === 1) result.right = targetColors[1]
-  if (x === -1) result.left = targetColors[1]
+  // 根据坐标确定哪些面可见，然后设置对应的颜色
+  if (y === 1 && targetFaceColors.U) {
+    result.upper = targetFaceColors.U
+  }
+  if (y === -1 && targetFaceColors.D) {
+    result.down = targetFaceColors.D
+  }
+  if (z === 1 && targetFaceColors.F) {
+    result.front = targetFaceColors.F
+  }
+  if (z === -1 && targetFaceColors.B) {
+    result.back = targetFaceColors.B
+  }
+  if (x === 1 && targetFaceColors.R) {
+    result.right = targetFaceColors.R
+  }
+  if (x === -1 && targetFaceColors.L) {
+    result.left = targetFaceColors.L
+  }
   
   return result
 }
