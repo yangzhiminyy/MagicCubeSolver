@@ -1,5 +1,7 @@
-import { CubeState, Move } from './cubeTypes'
-import { createSolvedCube } from './cubeLogic'
+import { Move, CubieBasedCubeState } from './cubeTypes'
+import { cubieBasedStateToFaceColors } from './cubieBasedCubeLogic'
+import { createSolvedCubieBasedCube } from './cubieBasedCubeLogic'
+import { CubeState } from './cubeTypes'
 import { solve as kociembaWasmSolve } from 'kociemba-wasm'
 
 // 将 CubeState 转换为 Kociemba 算法需要的 cubestring 格式
@@ -164,11 +166,14 @@ export function kociembaStringToMoves(solutionString: string): Move[] {
 
 // 使用 Kociemba 算法求解魔方
 // movesToState 参数保留以保持 API 兼容性，但不再使用（Kociemba 直接从 cubestring 求解）
-export async function solveCube(cubeState: CubeState, _movesToState?: Move[]): Promise<Move[]> {
+export async function solveCube(cubieBasedState: CubieBasedCubeState, _movesToState?: Move[]): Promise<Move[]> {
   try {
     // 检查当前状态是否已经是已解决状态
-    const solvedState = createSolvedCube()
-    if (JSON.stringify(cubeState) === JSON.stringify(solvedState)) {
+    const solvedState = createSolvedCubieBasedCube()
+    const cubeState = cubieBasedStateToFaceColors(cubieBasedState)
+    const solvedCubeState = cubieBasedStateToFaceColors(solvedState)
+    
+    if (JSON.stringify(cubeState) === JSON.stringify(solvedCubeState)) {
       console.log('魔方已经解决，无需求解')
       return []
     }
@@ -179,7 +184,7 @@ export async function solveCube(cubeState: CubeState, _movesToState?: Move[]): P
     console.log('cubestring 长度:', cubestring.length)
     
     // 验证已解决状态的 cubestring
-    const solvedCubestring = cubeStateToCubestring(solvedState)
+    const solvedCubestring = cubeStateToCubestring(solvedCubeState)
     console.log('已解决状态的 cubestring:', solvedCubestring)
     console.log('期望的已解决状态: UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB')
     

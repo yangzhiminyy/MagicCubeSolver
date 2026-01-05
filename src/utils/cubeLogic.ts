@@ -1,3 +1,9 @@
+/**
+ * 旧的基于 facelet 的魔方逻辑
+ * 
+ * 注意：此文件已不再被使用。所有功能已迁移到 cubieBasedCubeLogic.ts。
+ * 保留此文件仅作为参考，可以安全删除。
+ */
 import { CubeState, FaceColor, Move, FACE_COLORS } from './cubeTypes'
 
 export function createSolvedCube(): CubeState {
@@ -22,23 +28,6 @@ export function rotateFaceClockwise(face: FaceColor[][]): FaceColor[][] {
   return rotated
 }
 
-export function rotateFaceCounterClockwise(face: FaceColor[][]): FaceColor[][] {
-  const rotated = Array(3).fill(null).map(() => Array(3).fill('white')) as FaceColor[][]
-  for (let i = 0; i < 3; i++) {
-    for (let j = 0; j < 3; j++) {
-      rotated[2 - j][i] = face[i][j]
-    }
-  }
-  return rotated
-}
-
-// U面特殊的顺时针旋转函数，考虑坐标映射row=z+1的特殊性
-// 由于U面的row=z+1，U[0]对应z=-1（B面），U[2]对应z=1（F面）
-// 当U面顺时针旋转时，需要使用标准的顺时针旋转
-export function rotateUFaceClockwise(face: FaceColor[][]): FaceColor[][] {
-  // 使用标准的顺时针旋转
-  return rotateFaceClockwise(face)
-}
 
 export function applyMove(state: CubeState, move: Move): CubeState {
   const newState = JSON.parse(JSON.stringify(state)) as CubeState
