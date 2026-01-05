@@ -1,6 +1,5 @@
 import { Move, CubieBasedCubeState } from './cubeTypes'
 import { createSolvedCubieBasedCube, applyMove, cubieBasedStateToFaceColors } from './cubieBasedCubeLogic'
-import { CubeState } from './cubeTypes'
 import { solveByThistlethwaite as thistlethwaiteSolve } from './thistlethwaite'
 
 // 求解算法类型
