@@ -506,38 +506,48 @@ function edgeIdToCoords(edgeId: EdgeCubieId): [number, number, number] {
 }
 
 /**
+ * 获取角块的面顺序（按照U/D, F/B, R/L的优先级）
+ */
+function getCornerFaceOrder(cornerId: CornerCubieId): Face[] {
+  const faces: Face[] = []
+  // 按照 U/D, F/B, R/L 的顺序
+  if (cornerId.includes('U')) faces.push('U')
+  else if (cornerId.includes('D')) faces.push('D')
+  
+  if (cornerId.includes('F')) faces.push('F')
+  else if (cornerId.includes('B')) faces.push('B')
+  
+  if (cornerId.includes('R')) faces.push('R')
+  else if (cornerId.includes('L')) faces.push('L')
+  
+  return faces
+}
+
+/**
  * 获取corner cubie在指定位置时，各个面的颜色
  * @param corner 角块
  * @param position 当前位置
  * @returns 各个面的颜色映射
  */
 function getCornerFaceColors(corner: CornerCubie, position: CornerCubieId): Partial<Record<Face, FaceColor>> {
-  // 获取position对应的面
-  const positionFaces: Face[] = []
-  if (position.includes('U')) positionFaces.push('U')
-  if (position.includes('D')) positionFaces.push('D')
-  if (position.includes('F')) positionFaces.push('F')
-  if (position.includes('B')) positionFaces.push('B')
-  if (position.includes('L')) positionFaces.push('L')
-  if (position.includes('R')) positionFaces.push('R')
-
-  // 获取原始颜色的面
-  const originalFaces: Face[] = []
-  if (corner.id.includes('U')) originalFaces.push('U')
-  if (corner.id.includes('D')) originalFaces.push('D')
-  if (corner.id.includes('F')) originalFaces.push('F')
-  if (corner.id.includes('B')) originalFaces.push('B')
-  if (corner.id.includes('L')) originalFaces.push('L')
-  if (corner.id.includes('R')) originalFaces.push('R')
+  // 获取position对应的面（按照固定顺序）
+  const positionFaces = getCornerFaceOrder(position)
+  
+  // 获取原始颜色的面（按照固定顺序）
+  const originalFaces = getCornerFaceOrder(corner.id)
 
   // 根据orientation旋转颜色映射
-  // orientation = 0: 原始顺序
-  // orientation = 1: 顺时针转一次
-  // orientation = 2: 顺时针转两次
+  // orientation = 0: 原始顺序 (originalFaces[0] -> positionFaces[0], originalFaces[1] -> positionFaces[1], originalFaces[2] -> positionFaces[2])
+  // orientation = 1: 顺时针转一次 (originalFaces[0] -> positionFaces[1], originalFaces[1] -> positionFaces[2], originalFaces[2] -> positionFaces[0])
+  // orientation = 2: 顺时针转两次 (originalFaces[0] -> positionFaces[2], originalFaces[1] -> positionFaces[0], originalFaces[2] -> positionFaces[1])
   const result: Partial<Record<Face, FaceColor>> = {}
   
   for (let i = 0; i < positionFaces.length; i++) {
     const targetFace = positionFaces[i]
+    // 根据orientation计算源索引
+    // orientation = 0: i -> i
+    // orientation = 1: i -> (i-1+3)%3 = (i+2)%3
+    // orientation = 2: i -> (i-2+3)%3 = (i+1)%3
     const sourceIndex = (i - corner.orientation + 3) % 3
     const sourceFace = originalFaces[sourceIndex]
     if (corner.colors[sourceFace]) {
