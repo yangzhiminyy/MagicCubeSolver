@@ -27,9 +27,11 @@ interface CornerCubie {
 }
 ```
 
+**注意**：`CubieColors` 使用 `upper, down, right, left, front, back` 表示实时方位，以区分初始的 `UDRLFB`。
+
 **初始状态**：
-- UFR: `id='UFR', coordinate=[1, 1, 1], colors={U: 'white', F: 'red', R: 'blue', D: 'black', B: 'black', L: 'black'}`
-- UFL: `id='UFL', coordinate=[-1, 1, 1], colors={U: 'white', F: 'red', L: 'green', D: 'black', B: 'black', R: 'black'}`
+- UFR: `id='UFR', coordinate=[1, 1, 1], colors={upper: 'white', front: 'red', right: 'blue', down: 'black', back: 'black', left: 'black'}`
+- UFL: `id='UFL', coordinate=[-1, 1, 1], colors={upper: 'white', front: 'red', left: 'green', down: 'black', back: 'black', right: 'black'}`
 - ... 等等
 
 ### 2.2 边块（EdgeCubie）
@@ -43,8 +45,8 @@ interface EdgeCubie {
 ```
 
 **初始状态**：
-- UR: `id='UR', coordinate=[1, 1, 0], colors={U: 'white', R: 'blue', F: 'black', B: 'black', D: 'black', L: 'black'}`
-- UF: `id='UF', coordinate=[0, 1, 1], colors={U: 'white', F: 'red', R: 'black', L: 'black', D: 'black', B: 'black'}`
+- UR: `id='UR', coordinate=[1, 1, 0], colors={upper: 'white', right: 'blue', front: 'black', back: 'black', down: 'black', left: 'black'}`
+- UF: `id='UF', coordinate=[0, 1, 1], colors={upper: 'white', front: 'red', right: 'black', left: 'black', down: 'black', back: 'black'}`
 - ... 等等
 
 ### 2.3 中心块（FaceCubie）
@@ -131,11 +133,11 @@ interface FaceCubie {
 
 **颜色旋转**（绕x轴顺时针90度）：
 ```
-U = F的颜色
-F = D的颜色
-D = B的颜色
-B = U的颜色
-L和R不变
+upper = front的颜色
+front = down的颜色
+down = back的颜色
+back = upper的颜色
+left和right不变
 ```
 
 ### 4.2 L面旋转（x=-1的所有cubie）
@@ -154,11 +156,11 @@ L和R不变
 
 **颜色旋转**（绕y轴逆时针90度）：
 ```
-F = R的颜色
-R = B的颜色
-B = L的颜色
-L = F的颜色
-U和D不变
+front = right的颜色
+right = back的颜色
+back = left的颜色
+left = front的颜色
+upper和down不变
 ```
 
 ### 4.4 D面旋转（y=-1的所有cubie）
@@ -177,11 +179,11 @@ U和D不变
 
 **颜色旋转**（绕z轴顺时针90度）：
 ```
-U = L的颜色
-L = D的颜色
-D = R的颜色
-R = U的颜色
-F和B不变
+upper = left的颜色
+left = down的颜色
+down = right的颜色
+right = upper的颜色
+front和back不变
 ```
 
 ### 4.6 B面旋转（z=-1的所有cubie）
@@ -208,6 +210,7 @@ export function createSolvedCubieBasedCube(): CubieBasedCubeState {
       id: 'UFR',
       coordinate: [1, 1, 1],  // 使用坐标而不是position
       colors: createCornerColors(FACE_COLORS.U, null, FACE_COLORS.F, null, null, FACE_COLORS.R),
+      // upper='white', front='red', right='blue', 其他为'black'
     },
     // ... 其他角块
   }
@@ -237,6 +240,7 @@ export function rotateR(state: CubieBasedCubeState): CubieBasedCubeState {
     corner.coordinate = [x, z, -y]
     
     // 颜色旋转：绕x轴顺时针90度
+    // upper = front的颜色, front = down的颜色, down = back的颜色, back = upper的颜色
     corner.colors = rotateColorsAroundXAxis(corner.colors, true)
   }
   
@@ -277,17 +281,24 @@ function findCornerByCoordinate(
 ```typescript
 function getCornerFaceColors(corner: CornerCubie, coordinate: [number, number, number]): Partial<Record<Face, FaceColor>> {
   // 根据坐标确定哪些面可见
+  // 注意：坐标对应的是魔方的面（U/D/F/B/L/R），而 corner.colors 存储的是 cubie 的实时方位（upper/down/front/back/left/right）
   const [x, y, z] = coordinate
   const result: Partial<Record<Face, FaceColor>> = {}
   
-  if (y === 1) result.U = corner.colors.U  // 上表面
-  if (y === -1) result.D = corner.colors.D  // 下表面
-  if (z === 1) result.F = corner.colors.F  // 前表面
-  if (z === -1) result.B = corner.colors.B  // 后表面
-  if (x === 1) result.R = corner.colors.R  // 右表面
-  if (x === -1) result.L = corner.colors.L  // 左表面
+  // y=1 表示在魔方的上表面（U面），此时 cubie 的 upper 面可见
+  if (y === 1) result.U = corner.colors.upper
+  // y=-1 表示在魔方的下表面（D面），此时 cubie 的 down 面可见
+  if (y === -1) result.D = corner.colors.down
+  // z=1 表示在魔方的前表面（F面），此时 cubie 的 front 面可见
+  if (z === 1) result.F = corner.colors.front
+  // z=-1 表示在魔方的后表面（B面），此时 cubie 的 back 面可见
+  if (z === -1) result.B = corner.colors.back
+  // x=1 表示在魔方的右表面（R面），此时 cubie 的 right 面可见
+  if (x === 1) result.R = corner.colors.right
+  // x=-1 表示在魔方的左表面（L面），此时 cubie 的 left 面可见
+  if (x === -1) result.L = corner.colors.left
   
-  // 过滤黑色
+  // 过滤黑色（不可见的面）
   Object.keys(result).forEach(face => {
     if (result[face as Face] === 'black') {
       delete result[face as Face]

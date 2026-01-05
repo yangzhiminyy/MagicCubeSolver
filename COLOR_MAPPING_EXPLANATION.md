@@ -15,6 +15,16 @@
 
 **核心思想**：cubie 的坐标 `[x, y, z]` 决定了哪些面是可见的。
 
+### 1.3 命名约定
+
+**重要**：为了避免混淆，我们使用不同的命名：
+- **魔方的固定面**：`U, D, R, L, F, B`（Upper, Down, Right, Left, Front, Back）
+- **Cubie 的实时方位**：`upper, down, right, left, front, back`（小写，表示 cubie 相对于自身的方位）
+
+**区别**：
+- `U` 是魔方的上表面（固定不变）
+- `upper` 是 cubie 的上表面（会随着 cubie 旋转而改变）
+
 ## 2. 坐标与可见面的关系
 
 ### 2.1 坐标系统
@@ -26,20 +36,20 @@
 ### 2.2 可见面判断规则
 
 **角块（坐标的每个分量都是 ±1）**：
-- 如果 `y === 1`：上表面可见 → 显示 `corner.colors.U`
-- 如果 `y === -1`：下表面可见 → 显示 `corner.colors.D`
-- 如果 `z === 1`：前表面可见 → 显示 `corner.colors.F`
-- 如果 `z === -1`：后表面可见 → 显示 `corner.colors.B`
-- 如果 `x === 1`：右表面可见 → 显示 `corner.colors.R`
-- 如果 `x === -1`：左表面可见 → 显示 `corner.colors.L`
+- 如果 `y === 1`：在魔方的 U 面 → cubie 的 `upper` 面可见 → 显示 `corner.colors.upper`
+- 如果 `y === -1`：在魔方的 D 面 → cubie 的 `down` 面可见 → 显示 `corner.colors.down`
+- 如果 `z === 1`：在魔方的 F 面 → cubie 的 `front` 面可见 → 显示 `corner.colors.front`
+- 如果 `z === -1`：在魔方的 B 面 → cubie 的 `back` 面可见 → 显示 `corner.colors.back`
+- 如果 `x === 1`：在魔方的 R 面 → cubie 的 `right` 面可见 → 显示 `corner.colors.right`
+- 如果 `x === -1`：在魔方的 L 面 → cubie 的 `left` 面可见 → 显示 `corner.colors.left`
 
 **边块（坐标的一个分量是 0，两个分量是 ±1）**：
-- 如果 `y === 1`：上表面可见 → 显示 `edge.colors.U`
-- 如果 `y === -1`：下表面可见 → 显示 `edge.colors.D`
-- 如果 `z === 1`：前表面可见 → 显示 `edge.colors.F`
-- 如果 `z === -1`：后表面可见 → 显示 `edge.colors.B`
-- 如果 `x === 1`：右表面可见 → 显示 `edge.colors.R`
-- 如果 `x === -1`：左表面可见 → 显示 `edge.colors.L`
+- 如果 `y === 1`：在魔方的 U 面 → cubie 的 `upper` 面可见 → 显示 `edge.colors.upper`
+- 如果 `y === -1`：在魔方的 D 面 → cubie 的 `down` 面可见 → 显示 `edge.colors.down`
+- 如果 `z === 1`：在魔方的 F 面 → cubie 的 `front` 面可见 → 显示 `edge.colors.front`
+- 如果 `z === -1`：在魔方的 B 面 → cubie 的 `back` 面可见 → 显示 `edge.colors.back`
+- 如果 `x === 1`：在魔方的 R 面 → cubie 的 `right` 面可见 → 显示 `edge.colors.right`
+- 如果 `x === -1`：在魔方的 L 面 → cubie 的 `left` 面可见 → 显示 `edge.colors.left`
 
 ## 3. 具体示例
 
@@ -48,7 +58,7 @@
 **初始状态**：
 - ID: `'UFR'`（固定不变）
 - 坐标: `[1, 1, 1]`（上-前-右）
-- 颜色: `{U: 'white', F: 'red', R: 'blue', D: 'black', B: 'black', L: 'black'}`
+- 颜色: `{upper: 'white', front: 'red', right: 'blue', down: 'black', back: 'black', left: 'black'}`
 
 **颜色映射过程**：
 ```typescript
@@ -56,43 +66,43 @@ function getCornerFaceColors(corner: CornerCubie, coordinate: [number, number, n
   const [x, y, z] = coordinate  // [1, 1, 1]
   const result: Partial<Record<Face, FaceColor>> = {}
   
-  // y === 1，所以上表面可见
-  if (y === 1) result.U = corner.colors.U  // result.U = 'white'
+  // y === 1，在魔方的 U 面，所以 cubie 的 upper 面可见
+  if (y === 1) result.U = corner.colors.upper  // result.U = 'white'
   
-  // z === 1，所以前表面可见
-  if (z === 1) result.F = corner.colors.F  // result.F = 'red'
+  // z === 1，在魔方的 F 面，所以 cubie 的 front 面可见
+  if (z === 1) result.F = corner.colors.front  // result.F = 'red'
   
-  // x === 1，所以右表面可见
-  if (x === 1) result.R = corner.colors.R  // result.R = 'blue'
+  // x === 1，在魔方的 R 面，所以 cubie 的 right 面可见
+  if (x === 1) result.R = corner.colors.right  // result.R = 'blue'
   
   // 过滤黑色（不可见的面）
-  // D, B, L 都是黑色，不添加到 result 中
+  // down, back, left 都是黑色，不添加到 result 中
   
   return result  // {U: 'white', F: 'red', R: 'blue'}
 }
 ```
 
-**结果**：U面显示白色，F面显示红色，R面显示蓝色。
+**结果**：魔方的 U 面显示白色，F 面显示红色，R 面显示蓝色。
 
 ### 3.2 示例2：UFR 角块旋转到 DFR 位置（R旋转后）
 
 **旋转后状态**：
 - ID: `'UFR'`（不变）
 - 坐标: `[1, -1, 1]`（下-前-右，从 [1, 1, 1] 旋转而来）
-- 颜色: 经过颜色旋转后，`{U: 'red', F: 'blue', R: 'white', D: 'black', B: 'black', L: 'black'}`
+- 颜色: 经过颜色旋转后，`{upper: 'red', front: 'blue', right: 'white', down: 'black', back: 'black', left: 'black'}`
 
 **颜色映射过程**：
 ```typescript
 const [x, y, z] = [1, -1, 1]
 
-// y === -1，所以下表面可见
-if (y === -1) result.D = corner.colors.D  // 但是 colors.D 是 'black'，不添加
+// y === -1，在魔方的 D 面，所以 cubie 的 down 面可见
+if (y === -1) result.D = corner.colors.down  // 但是 colors.down 是 'black'，不添加
 
-// z === 1，所以前表面可见
-if (z === 1) result.F = corner.colors.F  // result.F = 'blue'
+// z === 1，在魔方的 F 面，所以 cubie 的 front 面可见
+if (z === 1) result.F = corner.colors.front  // result.F = 'blue'
 
-// x === 1，所以右表面可见
-if (x === 1) result.R = corner.colors.R  // result.R = 'white'
+// x === 1，在魔方的 R 面，所以 cubie 的 right 面可见
+if (x === 1) result.R = corner.colors.right  // result.R = 'white'
 
 // 过滤黑色后
 return result  // {F: 'blue', R: 'white'}
@@ -103,9 +113,9 @@ return result  // {F: 'blue', R: 'white'}
 **原因**：颜色旋转后，原来 U 面的颜色（白色）现在在 F 面，原来 F 面的颜色（红色）现在在 D 面。
 
 **正确的理解**：
-- 在 DFR 位置，D 面可见，应该显示 `corner.colors.D`
-- 但是，由于颜色旋转，`corner.colors.D` 现在存储的是原来 F 面的颜色（红色）
-- 所以 D 面应该显示红色
+- 在 DFR 位置（坐标 [1, -1, 1]），魔方的 D 面可见，应该显示 `corner.colors.down`
+- 但是，由于颜色旋转，`corner.colors.down` 现在存储的是原来 front 面的颜色（红色）
+- 所以魔方的 D 面应该显示红色
 
 **等等，让我重新理解**：
 
@@ -136,43 +146,50 @@ function getCornerFaceColors(
   const result: Partial<Record<Face, FaceColor>> = {}
   
   // 根据坐标确定哪些面可见，然后从 corner.colors 中读取对应面的颜色
+  // 注意：坐标对应魔方的面（U/D/F/B/L/R），colors 对应 cubie 的实时方位（upper/down/front/back/left/right）
   if (y === 1) {
-    const color = corner.colors.U
+    // 在魔方的 U 面，cubie 的 upper 面可见
+    const color = corner.colors.upper
     if (color && color !== 'black') {
       result.U = color
     }
   }
   
   if (y === -1) {
-    const color = corner.colors.D
+    // 在魔方的 D 面，cubie 的 down 面可见
+    const color = corner.colors.down
     if (color && color !== 'black') {
       result.D = color
     }
   }
   
   if (z === 1) {
-    const color = corner.colors.F
+    // 在魔方的 F 面，cubie 的 front 面可见
+    const color = corner.colors.front
     if (color && color !== 'black') {
       result.F = color
     }
   }
   
   if (z === -1) {
-    const color = corner.colors.B
+    // 在魔方的 B 面，cubie 的 back 面可见
+    const color = corner.colors.back
     if (color && color !== 'black') {
       result.B = color
     }
   }
   
   if (x === 1) {
-    const color = corner.colors.R
+    // 在魔方的 R 面，cubie 的 right 面可见
+    const color = corner.colors.right
     if (color && color !== 'black') {
       result.R = color
     }
   }
   
   if (x === -1) {
-    const color = corner.colors.L
+    // 在魔方的 L 面，cubie 的 left 面可见
+    const color = corner.colors.left
     if (color && color !== 'black') {
       result.L = color
     }
@@ -194,32 +211,32 @@ function getEdgeFaceColors(
   
   // 同样的逻辑：根据坐标确定可见面
   if (y === 1) {
-    const color = edge.colors.U
+    const color = edge.colors.upper
     if (color && color !== 'black') result.U = color
   }
   
   if (y === -1) {
-    const color = edge.colors.D
+    const color = edge.colors.down
     if (color && color !== 'black') result.D = color
   }
   
   if (z === 1) {
-    const color = edge.colors.F
+    const color = edge.colors.front
     if (color && color !== 'black') result.F = color
   }
   
   if (z === -1) {
-    const color = edge.colors.B
+    const color = edge.colors.back
     if (color && color !== 'black') result.B = color
   }
   
   if (x === 1) {
-    const color = edge.colors.R
+    const color = edge.colors.right
     if (color && color !== 'black') result.R = color
   }
   
   if (x === -1) {
-    const color = edge.colors.L
+    const color = edge.colors.left
     if (color && color !== 'black') result.L = color
   }
   
@@ -251,13 +268,13 @@ UFR: {
 ```typescript
 const [x, y, z] = [1, 1, 1]
 
-// y === 1 → U面可见 → 显示 corner.colors.U = 'white'
+// y === 1 → 在魔方的 U 面 → cubie 的 upper 面可见 → 显示 corner.colors.upper = 'white'
 result.U = 'white'
 
-// z === 1 → F面可见 → 显示 corner.colors.F = 'red'
+// z === 1 → 在魔方的 F 面 → cubie 的 front 面可见 → 显示 corner.colors.front = 'red'
 result.F = 'red'
 
-// x === 1 → R面可见 → 显示 corner.colors.R = 'blue'
+// x === 1 → 在魔方的 R 面 → cubie 的 right 面可见 → 显示 corner.colors.right = 'blue'
 result.R = 'blue'
 
 // 返回 {U: 'white', F: 'red', R: 'blue'}
@@ -337,14 +354,14 @@ const [x, y, z] = [1, -1, 1]
 
 **所以颜色旋转函数应该是**：
 ```typescript
-// 顺时针：U->F->D->B->U
+// 顺时针：upper->front->down->back->upper
 return {
-  U: colors.B,  // 新U面 = 原来B面的颜色
-  F: colors.U,  // 新F面 = 原来U面的颜色
-  D: colors.F,  // 新D面 = 原来F面的颜色
-  B: colors.D,  // 新B面 = 原来D面的颜色
-  L: colors.L,  // L不变
-  R: colors.R,  // R不变
+  upper: colors.back,   // 新 upper 面 = 原来 back 面的颜色
+  front: colors.upper,  // 新 front 面 = 原来 upper 面的颜色
+  down: colors.front,   // 新 down 面 = 原来 front 面的颜色
+  back: colors.down,    // 新 back 面 = 原来 down 面的颜色
+  left: colors.left,    // left 不变
+  right: colors.right,   // right 不变
 }
 ```
 
@@ -367,9 +384,10 @@ return {
 5. 返回可见面的颜色映射
 
 **关键理解**：
-- 坐标决定可见面
-- `cubie.colors` 存储的是"当某个面可见时应该显示的颜色"
+- 坐标决定可见面（坐标对应魔方的固定面 U/D/F/B/L/R）
+- `cubie.colors` 存储的是 cubie 的实时方位颜色（upper/down/front/back/left/right）
 - 当 cubie 旋转时，坐标和 colors 都会更新，但映射逻辑不变
+- **命名区分**：魔方的面用大写 `U/D/F/B/L/R`，cubie 的方位用小写 `upper/down/front/back/left/right`
 
 ---
 
