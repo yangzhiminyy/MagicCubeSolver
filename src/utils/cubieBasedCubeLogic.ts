@@ -228,25 +228,30 @@ export function cloneCubieBasedState(state: CubieBasedCubeState): CubieBasedCube
 /**
  * 绕x轴旋转cubie颜色（R/L面旋转）
  * 顺时针：U->F->D->B->U
+ * 简化逻辑：直接赋值，U = B的颜色，F = U的颜色，D = F的颜色，B = D的颜色
  */
 function rotateColorsAroundXAxis(colors: CubieColors, clockwise: boolean): CubieColors {
   if (clockwise) {
+    // 顺时针：U->F->D->B->U
+    // U面显示B面的颜色，F面显示U面的颜色，D面显示F面的颜色，B面显示D面的颜色
     return {
-      U: colors.B,
-      D: colors.F,
-      F: colors.U,
-      B: colors.D,
-      L: colors.L,
-      R: colors.R,
+      U: colors.B,  // U = B的颜色
+      F: colors.U,  // F = U的颜色
+      D: colors.F,  // D = F的颜色
+      B: colors.D,  // B = D的颜色
+      L: colors.L,  // L不变
+      R: colors.R,  // R不变
     }
   } else {
+    // 逆时针：U->B->D->F->U
+    // U面显示F面的颜色，F面显示D面的颜色，D面显示B面的颜色，B面显示U面的颜色
     return {
-      U: colors.F,
-      D: colors.B,
-      F: colors.D,
-      B: colors.U,
-      L: colors.L,
-      R: colors.R,
+      U: colors.F,  // U = F的颜色
+      F: colors.D,  // F = D的颜色
+      D: colors.B,  // D = B的颜色
+      B: colors.U,  // B = U的颜色
+      L: colors.L,  // L不变
+      R: colors.R,  // R不变
     }
   }
 }
@@ -254,28 +259,30 @@ function rotateColorsAroundXAxis(colors: CubieColors, clockwise: boolean): Cubie
 /**
  * 绕y轴旋转cubie颜色（U/D面旋转）
  * 顺时针（从上面看）：F->L->B->R->F
- * 逆时针（从上面看）：F->R->B->L->F
+ * 简化逻辑：直接赋值
  */
 function rotateColorsAroundYAxis(colors: CubieColors, clockwise: boolean): CubieColors {
   if (clockwise) {
-    // 从上面看顺时针
+    // 从上面看顺时针：F->L->B->R->F
+    // F = L的颜色，L = B的颜色，B = R的颜色，R = F的颜色
     return {
-      U: colors.U,
-      D: colors.D,
-      F: colors.L,
-      B: colors.R,
-      L: colors.B,
-      R: colors.F,
+      U: colors.U,  // U不变
+      D: colors.D,  // D不变
+      F: colors.L,  // F = L的颜色
+      L: colors.B,  // L = B的颜色
+      B: colors.R,  // B = R的颜色
+      R: colors.F,  // R = F的颜色
     }
   } else {
-    // 从上面看逆时针
+    // 从上面看逆时针：F->R->B->L->F
+    // F = R的颜色，R = B的颜色，B = L的颜色，L = F的颜色
     return {
-      U: colors.U,
-      D: colors.D,
-      F: colors.R,
-      B: colors.L,
-      L: colors.F,
-      R: colors.B,
+      U: colors.U,  // U不变
+      D: colors.D,  // D不变
+      F: colors.R,  // F = R的颜色
+      R: colors.B,  // R = B的颜色
+      B: colors.L,  // B = L的颜色
+      L: colors.F,  // L = F的颜色
     }
   }
 }
@@ -283,28 +290,30 @@ function rotateColorsAroundYAxis(colors: CubieColors, clockwise: boolean): Cubie
 /**
  * 绕z轴旋转cubie颜色（F/B面旋转）
  * 顺时针（从前面看）：U->L->D->R->U
- * 逆时针（从前面看）：U->R->D->L->U
+ * 简化逻辑：直接赋值
  */
 function rotateColorsAroundZAxis(colors: CubieColors, clockwise: boolean): CubieColors {
   if (clockwise) {
-    // 从前面看顺时针
+    // 从前面看顺时针：U->L->D->R->U
+    // U = L的颜色，L = D的颜色，D = R的颜色，R = U的颜色
     return {
-      U: colors.L,
-      D: colors.R,
-      F: colors.F,
-      B: colors.B,
-      L: colors.D,
-      R: colors.U,
+      U: colors.L,  // U = L的颜色
+      L: colors.D,  // L = D的颜色
+      D: colors.R,  // D = R的颜色
+      R: colors.U,  // R = U的颜色
+      F: colors.F,  // F不变
+      B: colors.B,  // B不变
     }
   } else {
-    // 从前面看逆时针
+    // 从前面看逆时针：U->R->D->L->U
+    // U = R的颜色，R = D的颜色，D = L的颜色，L = U的颜色
     return {
-      U: colors.R,
-      D: colors.L,
-      F: colors.F,
-      B: colors.B,
-      L: colors.U,
-      R: colors.D,
+      U: colors.R,  // U = R的颜色
+      R: colors.D,  // R = D的颜色
+      D: colors.L,  // D = L的颜色
+      L: colors.U,  // L = U的颜色
+      F: colors.F,  // F不变
+      B: colors.B,  // B不变
     }
   }
 }
