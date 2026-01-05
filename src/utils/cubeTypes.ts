@@ -1,4 +1,4 @@
-export type FaceColor = 'white' | 'yellow' | 'red' | 'orange' | 'green' | 'blue'
+export type FaceColor = 'white' | 'yellow' | 'red' | 'orange' | 'green' | 'blue' | 'black'
 
 export type Face = 'U' | 'D' | 'F' | 'B' | 'L' | 'R'
 
@@ -49,32 +49,28 @@ export type FaceCubieId = 'U' | 'D' | 'F' | 'B' | 'L' | 'R'
 
 export type CubieId = CornerCubieId | EdgeCubieId | FaceCubieId
 
-// Cubie 颜色映射
+// Cubie 颜色映射：每个cubie都有6个面的颜色（不可见面用黑色）
 export interface CubieColors {
-  U?: FaceColor
-  D?: FaceColor
-  F?: FaceColor
-  B?: FaceColor
-  L?: FaceColor
-  R?: FaceColor
+  U: FaceColor
+  D: FaceColor
+  F: FaceColor
+  B: FaceColor
+  L: FaceColor
+  R: FaceColor
 }
 
-// 角块：有3个面，每个面有颜色
-// orientation: 0 = 正确方向, 1 = 顺时针转一次, 2 = 顺时针转两次
+// 角块：有6个面的颜色（3个可见面，3个不可见面用黑色）
 export interface CornerCubie {
   id: CornerCubieId
   position: CornerCubieId  // 当前位置
-  orientation: 0 | 1 | 2   // 方向（0, 1, 2）
-  colors: CubieColors      // 初始颜色（不变）
+  colors: CubieColors      // 颜色（可旋转）
 }
 
-// 边块：有2个面
-// orientation: 0 = 正确方向, 1 = 翻转
+// 边块：有6个面的颜色（2个可见面，4个不可见面用黑色）
 export interface EdgeCubie {
   id: EdgeCubieId
   position: EdgeCubieId    // 当前位置
-  orientation: 0 | 1       // 方向（0=正确，1=翻转）
-  colors: CubieColors      // 初始颜色（不变）
+  colors: CubieColors      // 颜色（可旋转）
 }
 
 // 面块：只有1个面（中心块）

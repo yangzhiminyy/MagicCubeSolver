@@ -18,7 +18,50 @@ import {
   FaceColor,
   CubeState,
   Face,
+  CubieColors,
 } from './cubeTypes'
+
+/**
+ * 创建角块颜色（6个面，不可见面用黑色）
+ */
+function createCornerColors(
+  u: FaceColor | null,
+  d: FaceColor | null,
+  f: FaceColor | null,
+  b: FaceColor | null,
+  l: FaceColor | null,
+  r: FaceColor | null
+): CubieColors {
+  return {
+    U: u ?? 'black',
+    D: d ?? 'black',
+    F: f ?? 'black',
+    B: b ?? 'black',
+    L: l ?? 'black',
+    R: r ?? 'black',
+  }
+}
+
+/**
+ * 创建边块颜色（6个面，不可见面用黑色）
+ */
+function createEdgeColors(
+  u: FaceColor | null,
+  d: FaceColor | null,
+  f: FaceColor | null,
+  b: FaceColor | null,
+  l: FaceColor | null,
+  r: FaceColor | null
+): CubieColors {
+  return {
+    U: u ?? 'black',
+    D: d ?? 'black',
+    F: f ?? 'black',
+    B: b ?? 'black',
+    L: l ?? 'black',
+    R: r ?? 'black',
+  }
+}
 
 /**
  * 创建已解决的 Cubie-based 魔方状态
@@ -34,137 +77,116 @@ export function createSolvedCubieBasedCube(): CubieBasedCubeState {
     R: { id: 'R', position: 'R', color: FACE_COLORS.R },
   }
 
-  // 初始化8个角块
-  // 每个角块的colors记录初始状态下的颜色（不变）
+  // 初始化8个角块（每个都有6个面的颜色，不可见面用黑色）
   const corners: Record<CornerCubieId, CornerCubie> = {
     // 上层角块
     UFR: {
       id: 'UFR',
       position: 'UFR',
-      orientation: 0,
-      colors: { U: FACE_COLORS.U, F: FACE_COLORS.F, R: FACE_COLORS.R },
+      colors: createCornerColors(FACE_COLORS.U, null, FACE_COLORS.F, null, null, FACE_COLORS.R),
     },
     UFL: {
       id: 'UFL',
       position: 'UFL',
-      orientation: 0,
-      colors: { U: FACE_COLORS.U, F: FACE_COLORS.F, L: FACE_COLORS.L },
+      colors: createCornerColors(FACE_COLORS.U, null, FACE_COLORS.F, null, FACE_COLORS.L, null),
     },
     UBL: {
       id: 'UBL',
       position: 'UBL',
-      orientation: 0,
-      colors: { U: FACE_COLORS.U, B: FACE_COLORS.B, L: FACE_COLORS.L },
+      colors: createCornerColors(FACE_COLORS.U, null, null, FACE_COLORS.B, FACE_COLORS.L, null),
     },
     UBR: {
       id: 'UBR',
       position: 'UBR',
-      orientation: 0,
-      colors: { U: FACE_COLORS.U, B: FACE_COLORS.B, R: FACE_COLORS.R },
+      colors: createCornerColors(FACE_COLORS.U, null, null, FACE_COLORS.B, null, FACE_COLORS.R),
     },
     // 下层角块
     DFR: {
       id: 'DFR',
       position: 'DFR',
-      orientation: 0,
-      colors: { D: FACE_COLORS.D, F: FACE_COLORS.F, R: FACE_COLORS.R },
+      colors: createCornerColors(null, FACE_COLORS.D, FACE_COLORS.F, null, null, FACE_COLORS.R),
     },
     DFL: {
       id: 'DFL',
       position: 'DFL',
-      orientation: 0,
-      colors: { D: FACE_COLORS.D, F: FACE_COLORS.F, L: FACE_COLORS.L },
+      colors: createCornerColors(null, FACE_COLORS.D, FACE_COLORS.F, null, FACE_COLORS.L, null),
     },
     DBL: {
       id: 'DBL',
       position: 'DBL',
-      orientation: 0,
-      colors: { D: FACE_COLORS.D, B: FACE_COLORS.B, L: FACE_COLORS.L },
+      colors: createCornerColors(null, FACE_COLORS.D, null, FACE_COLORS.B, FACE_COLORS.L, null),
     },
     DBR: {
       id: 'DBR',
       position: 'DBR',
-      orientation: 0,
-      colors: { D: FACE_COLORS.D, B: FACE_COLORS.B, R: FACE_COLORS.R },
+      colors: createCornerColors(null, FACE_COLORS.D, null, FACE_COLORS.B, null, FACE_COLORS.R),
     },
   }
 
-  // 初始化12个边块
+  // 初始化12个边块（每个都有6个面的颜色，不可见面用黑色）
   const edges: Record<EdgeCubieId, EdgeCubie> = {
     // 上层边块
     UF: {
       id: 'UF',
       position: 'UF',
-      orientation: 0,
-      colors: { U: FACE_COLORS.U, F: FACE_COLORS.F },
+      colors: createEdgeColors(FACE_COLORS.U, null, FACE_COLORS.F, null, null, null),
     },
     UR: {
       id: 'UR',
       position: 'UR',
-      orientation: 0,
-      colors: { U: FACE_COLORS.U, R: FACE_COLORS.R },
+      colors: createEdgeColors(FACE_COLORS.U, null, null, null, null, FACE_COLORS.R),
     },
     UB: {
       id: 'UB',
       position: 'UB',
-      orientation: 0,
-      colors: { U: FACE_COLORS.U, B: FACE_COLORS.B },
+      colors: createEdgeColors(FACE_COLORS.U, null, null, FACE_COLORS.B, null, null),
     },
     UL: {
       id: 'UL',
       position: 'UL',
-      orientation: 0,
-      colors: { U: FACE_COLORS.U, L: FACE_COLORS.L },
+      colors: createEdgeColors(FACE_COLORS.U, null, null, null, FACE_COLORS.L, null),
     },
     // 下层边块
     DF: {
       id: 'DF',
       position: 'DF',
-      orientation: 0,
-      colors: { D: FACE_COLORS.D, F: FACE_COLORS.F },
+      colors: createEdgeColors(null, FACE_COLORS.D, FACE_COLORS.F, null, null, null),
     },
     DR: {
       id: 'DR',
       position: 'DR',
-      orientation: 0,
-      colors: { D: FACE_COLORS.D, R: FACE_COLORS.R },
+      colors: createEdgeColors(null, FACE_COLORS.D, null, null, null, FACE_COLORS.R),
     },
     DB: {
       id: 'DB',
       position: 'DB',
-      orientation: 0,
-      colors: { D: FACE_COLORS.D, B: FACE_COLORS.B },
+      colors: createEdgeColors(null, FACE_COLORS.D, null, FACE_COLORS.B, null, null),
     },
     DL: {
       id: 'DL',
       position: 'DL',
-      orientation: 0,
-      colors: { D: FACE_COLORS.D, L: FACE_COLORS.L },
+      colors: createEdgeColors(null, FACE_COLORS.D, null, null, FACE_COLORS.L, null),
     },
     // 中层边块
     FR: {
       id: 'FR',
       position: 'FR',
-      orientation: 0,
-      colors: { F: FACE_COLORS.F, R: FACE_COLORS.R },
+      colors: createEdgeColors(null, null, FACE_COLORS.F, null, null, FACE_COLORS.R),
     },
     FL: {
       id: 'FL',
       position: 'FL',
-      orientation: 0,
-      colors: { F: FACE_COLORS.F, L: FACE_COLORS.L },
+      colors: createEdgeColors(null, null, FACE_COLORS.F, null, FACE_COLORS.L, null),
     },
     BR: {
       id: 'BR',
       position: 'BR',
-      orientation: 0,
-      colors: { B: FACE_COLORS.B, R: FACE_COLORS.R },
+      colors: createEdgeColors(null, null, null, FACE_COLORS.B, null, FACE_COLORS.R),
     },
     BL: {
       id: 'BL',
       position: 'BL',
-      orientation: 0,
-      colors: { B: FACE_COLORS.B, L: FACE_COLORS.L },
+      colors: createEdgeColors(null, null, null, FACE_COLORS.B, FACE_COLORS.L, null),
     },
   }
 
@@ -322,11 +344,15 @@ export function rotateR(state: CubieBasedCubeState): CubieBasedCubeState {
   
   // 根据旧代码：U的右列 → F的右列 → D的右列 → B的左列 → U的右列
   // 这意味着：UFR位置 -> DFR位置 -> DBR位置 -> UBR位置 -> UFR位置
+  // 但是，如果看起来是逆时针，可能需要反转循环顺序
   // 从R面看（从右侧看），顺时针旋转应该是：UFR -> DFR -> DBR -> UBR -> UFR
-  cycleCorners(newState, ['UFR', 'DFR', 'DBR', 'UBR'], true)
+  // 但如果从前面看，顺时针旋转应该是逆时针的循环：UBR -> UFR -> DFR -> DBR -> UBR
+  // 尝试反转循环顺序，同时保持clockwise=true（这样orientation的计算方向也会相应调整）
+  cycleCorners(newState, ['UBR', 'UFR', 'DFR', 'DBR'], true)
   
   // 边块循环：UR -> FR -> DR -> BR -> UR
-  cycleEdges(newState, ['UR', 'FR', 'DR', 'BR'], true)
+  // 同样反转：BR -> UR -> FR -> DR -> BR
+  cycleEdges(newState, ['BR', 'UR', 'FR', 'DR'], true)
   
   return newState
 }
