@@ -419,10 +419,9 @@ export function rotateR(state: CubieBasedCubeState): CubieBasedCubeState {
   
   // 根据旧代码：U的右列 → F的右列 → D的右列 → B的左列 → U的右列
   // 这意味着：UFR位置 -> DFR位置 -> DBR位置 -> UBR位置 -> UFR位置
-  // 从前面看（标准视角），R面顺时针旋转时，应该是逆时针的循环：UBR -> UFR -> DFR -> DBR -> UBR
-  // 第一步：替换位置（反转循环顺序，使其从前面看是顺时针）
-  const cornerCycle: CornerCubieId[] = ['UBR', 'UFR', 'DFR', 'DBR']
-  const edgeCycle: EdgeCubieId[] = ['BR', 'UR', 'FR', 'DR']
+  // 第一步：替换位置（顺时针循环：UFR -> DFR -> DBR -> UBR -> UFR）
+  const cornerCycle: CornerCubieId[] = ['UFR', 'DFR', 'DBR', 'UBR']
+  const edgeCycle: EdgeCubieId[] = ['UR', 'FR', 'DR', 'BR']
   
   cycleCorners(newState, cornerCycle, true)
   cycleEdges(newState, edgeCycle, true)
@@ -450,9 +449,9 @@ export function rotateR(state: CubieBasedCubeState): CubieBasedCubeState {
 export function rotateRPrime(state: CubieBasedCubeState): CubieBasedCubeState {
   const newState = cloneCubieBasedState(state)
   
-  // 第一步：替换位置（反转循环顺序）
-  const cornerCycle: CornerCubieId[] = ['UBR', 'UFR', 'DFR', 'DBR']
-  const edgeCycle: EdgeCubieId[] = ['BR', 'UR', 'FR', 'DR']
+  // 第一步：替换位置（逆时针循环）
+  const cornerCycle: CornerCubieId[] = ['UFR', 'DFR', 'DBR', 'UBR']
+  const edgeCycle: EdgeCubieId[] = ['UR', 'FR', 'DR', 'BR']
   
   cycleCorners(newState, cornerCycle, false)
   cycleEdges(newState, edgeCycle, false)
