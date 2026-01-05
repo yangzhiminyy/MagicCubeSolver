@@ -227,29 +227,31 @@ export function cloneCubieBasedState(state: CubieBasedCubeState): CubieBasedCube
 
 /**
  * 绕x轴旋转cubie颜色（R/L面旋转）
- * 顺时针：U->F->D->B->U
- * 简化逻辑：直接赋值，U = B的颜色，F = U的颜色，D = F的颜色，B = D的颜色
+ * 从R面看（从+x方向看），顺时针旋转时：U->F->D->B->U
+ * 这意味着：U面转到F面位置，F面转到D面位置，D面转到B面位置，B面转到U面位置
+ * 所以旋转后：新U面显示原来F面的颜色（因为U面转到了F面位置），新F面显示原来D面的颜色，新D面显示原来B面的颜色，新B面显示原来U面的颜色
+ * 简化逻辑：直接赋值
  */
 function rotateColorsAroundXAxis(colors: CubieColors, clockwise: boolean): CubieColors {
   if (clockwise) {
     // 顺时针：U->F->D->B->U
-    // U面显示B面的颜色，F面显示U面的颜色，D面显示F面的颜色，B面显示D面的颜色
+    // U面转到F面位置，所以新U面显示原来F面的颜色
     return {
-      U: colors.B,  // U = B的颜色
-      F: colors.U,  // F = U的颜色
-      D: colors.F,  // D = F的颜色
-      B: colors.D,  // B = D的颜色
+      U: colors.F,  // U = F的颜色（U面转到F面位置）
+      F: colors.D,  // F = D的颜色（F面转到D面位置）
+      D: colors.B,  // D = B的颜色（D面转到B面位置）
+      B: colors.U,  // B = U的颜色（B面转到U面位置）
       L: colors.L,  // L不变
       R: colors.R,  // R不变
     }
   } else {
     // 逆时针：U->B->D->F->U
-    // U面显示F面的颜色，F面显示D面的颜色，D面显示B面的颜色，B面显示U面的颜色
+    // U面转到B面位置，所以新U面显示原来B面的颜色
     return {
-      U: colors.F,  // U = F的颜色
-      F: colors.D,  // F = D的颜色
-      D: colors.B,  // D = B的颜色
-      B: colors.U,  // B = U的颜色
+      U: colors.B,  // U = B的颜色（U面转到B面位置）
+      F: colors.U,  // F = U的颜色（F面转到U面位置）
+      D: colors.F,  // D = F的颜色（D面转到F面位置）
+      B: colors.D,  // B = D的颜色（B面转到D面位置）
       L: colors.L,  // L不变
       R: colors.R,  // R不变
     }
