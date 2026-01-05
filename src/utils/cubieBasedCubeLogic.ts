@@ -15,6 +15,9 @@ import {
   FaceCubieId,
   FACE_COLORS,
   Move,
+  FaceColor,
+  CubeState,
+  Face,
 } from './cubeTypes'
 
 /**
@@ -461,6 +464,218 @@ export function rotateBPrime(state: CubieBasedCubeState): CubieBasedCubeState {
   cycleEdges(newState, ['UB', 'BR', 'DB', 'BL'], false)
   
   return newState
+}
+
+/**
+ * 将CornerCubieId转换为3D坐标 (x, y, z)
+ */
+function cornerIdToCoords(cornerId: CornerCubieId): [number, number, number] {
+  const map: Record<CornerCubieId, [number, number, number]> = {
+    UFR: [1, 1, 1],   // Up-Front-Right
+    UFL: [-1, 1, 1],  // Up-Front-Left
+    UBL: [-1, 1, -1], // Up-Back-Left
+    UBR: [1, 1, -1],  // Up-Back-Right
+    DFR: [1, -1, 1],  // Down-Front-Right
+    DFL: [-1, -1, 1], // Down-Front-Left
+    DBL: [-1, -1, -1], // Down-Back-Left
+    DBR: [1, -1, -1], // Down-Back-Right
+  }
+  return map[cornerId]
+}
+
+/**
+ * 将EdgeCubieId转换为3D坐标 (x, y, z)
+ * 边块在面的交界处，坐标为两个面的中间位置（0或±1）
+ */
+function edgeIdToCoords(edgeId: EdgeCubieId): [number, number, number] {
+  const map: Record<EdgeCubieId, [number, number, number]> = {
+    UF: [0, 1, 1],   // Up-Front
+    UR: [1, 1, 0],   // Up-Right
+    UB: [0, 1, -1],  // Up-Back
+    UL: [-1, 1, 0],  // Up-Left
+    DF: [0, -1, 1],  // Down-Front
+    DR: [1, -1, 0],  // Down-Right
+    DB: [0, -1, -1], // Down-Back
+    DL: [-1, -1, 0], // Down-Left
+    FR: [1, 0, 1],   // Front-Right
+    FL: [-1, 0, 1],  // Front-Left
+    BR: [1, 0, -1],  // Back-Right
+    BL: [-1, 0, -1], // Back-Left
+  }
+  return map[edgeId]
+}
+
+/**
+ * 获取corner cubie在指定位置时，各个面的颜色
+ * @param corner 角块
+ * @param position 当前位置
+ * @returns 各个面的颜色映射
+ */
+function getCornerFaceColors(corner: CornerCubie, position: CornerCubieId): Partial<Record<Face, FaceColor>> {
+  // 获取position对应的面
+  const positionFaces: Face[] = []
+  if (position.includes('U')) positionFaces.push('U')
+  if (position.includes('D')) positionFaces.push('D')
+  if (position.includes('F')) positionFaces.push('F')
+  if (position.includes('B')) positionFaces.push('B')
+  if (position.includes('L')) positionFaces.push('L')
+  if (position.includes('R')) positionFaces.push('R')
+
+  // 获取原始颜色的面
+  const originalFaces: Face[] = []
+  if (corner.id.includes('U')) originalFaces.push('U')
+  if (corner.id.includes('D')) originalFaces.push('D')
+  if (corner.id.includes('F')) originalFaces.push('F')
+  if (corner.id.includes('B')) originalFaces.push('B')
+  if (corner.id.includes('L')) originalFaces.push('L')
+  if (corner.id.includes('R')) originalFaces.push('R')
+
+  // 根据orientation旋转颜色映射
+  // orientation = 0: 原始顺序
+  // orientation = 1: 顺时针转一次
+  // orientation = 2: 顺时针转两次
+  const result: Partial<Record<Face, FaceColor>> = {}
+  
+  for (let i = 0; i < positionFaces.length; i++) {
+    const targetFace = positionFaces[i]
+    const sourceIndex = (i - corner.orientation + 3) % 3
+    const sourceFace = originalFaces[sourceIndex]
+    if (corner.colors[sourceFace]) {
+      result[targetFace] = corner.colors[sourceFace]!
+    }
+  }
+
+  return result
+}
+
+/**
+ * 获取edge cubie在指定位置时，各个面的颜色
+ * @param edge 边块
+ * @param position 当前位置
+ * @returns 各个面的颜色映射
+ */
+function getEdgeFaceColors(edge: EdgeCubie, position: EdgeCubieId): Partial<Record<Face, FaceColor>> {
+  // 获取position对应的面
+  const positionFaces: Face[] = []
+  if (position.includes('U')) positionFaces.push('U')
+  if (position.includes('D')) positionFaces.push('D')
+  if (position.includes('F')) positionFaces.push('F')
+  if (position.includes('B')) positionFaces.push('B')
+  if (position.includes('L')) positionFaces.push('L')
+  if (position.includes('R')) positionFaces.push('R')
+
+  // 获取原始颜色的面
+  const originalFaces: Face[] = []
+  if (edge.id.includes('U')) originalFaces.push('U')
+  if (edge.id.includes('D')) originalFaces.push('D')
+  if (edge.id.includes('F')) originalFaces.push('F')
+  if (edge.id.includes('B')) originalFaces.push('B')
+  if (edge.id.includes('L')) originalFaces.push('L')
+  if (edge.id.includes('R')) originalFaces.push('R')
+
+  // 根据orientation翻转颜色映射
+  const result: Partial<Record<Face, FaceColor>> = {}
+  
+  if (edge.orientation === 0) {
+    // 正常方向
+    result[positionFaces[0]] = edge.colors[originalFaces[0]]
+    result[positionFaces[1]] = edge.colors[originalFaces[1]]
+  } else {
+    // 翻转方向
+    result[positionFaces[0]] = edge.colors[originalFaces[1]]
+    result[positionFaces[1]] = edge.colors[originalFaces[0]]
+  }
+
+  return result
+}
+
+/**
+ * 从CubieBasedCubeState计算面颜色数组（用于渲染）
+ */
+export function cubieBasedStateToFaceColors(state: CubieBasedCubeState): CubeState {
+  // 初始化所有面为null
+  const faceColors: CubeState = {
+    U: Array(3).fill(null).map(() => Array(3).fill(null)) as FaceColor[][],
+    D: Array(3).fill(null).map(() => Array(3).fill(null)) as FaceColor[][],
+    F: Array(3).fill(null).map(() => Array(3).fill(null)) as FaceColor[][],
+    B: Array(3).fill(null).map(() => Array(3).fill(null)) as FaceColor[][],
+    L: Array(3).fill(null).map(() => Array(3).fill(null)) as FaceColor[][],
+    R: Array(3).fill(null).map(() => Array(3).fill(null)) as FaceColor[][],
+  }
+
+  // 处理中心块
+  for (const face of Object.values(state.faces)) {
+    const [row, col] = getFaceCenterCoords(face.position)
+    faceColors[face.position][row][col] = face.color
+  }
+
+  // 处理角块
+  for (const corner of Object.values(state.corners)) {
+    const [x, y, z] = cornerIdToCoords(corner.position)
+    const colors = getCornerFaceColors(corner, corner.position)
+
+    // 映射到各个面
+    if (y === 1 && colors.U) {
+      // U面: row = z+1, col = x+1
+      faceColors.U[z + 1][x + 1] = colors.U
+    }
+    if (y === -1 && colors.D) {
+      // D面: row = 1-z, col = x+1
+      faceColors.D[1 - z][x + 1] = colors.D
+    }
+    if (z === 1 && colors.F) {
+      // F面: row = 1-y, col = x+1
+      faceColors.F[1 - y][x + 1] = colors.F
+    }
+    if (z === -1 && colors.B) {
+      // B面: row = 1-y, col = 1-x
+      faceColors.B[1 - y][1 - x] = colors.B
+    }
+    if (x === 1 && colors.R) {
+      // R面: row = 1-y, col = 1-z
+      faceColors.R[1 - y][1 - z] = colors.R
+    }
+    if (x === -1 && colors.L) {
+      // L面: row = 1-y, col = z+1
+      faceColors.L[1 - y][z + 1] = colors.L
+    }
+  }
+
+  // 处理边块
+  for (const edge of Object.values(state.edges)) {
+    const [x, y, z] = edgeIdToCoords(edge.position)
+    const colors = getEdgeFaceColors(edge, edge.position)
+
+    // 映射到各个面
+    if (y === 1 && colors.U) {
+      faceColors.U[z + 1][x + 1] = colors.U
+    }
+    if (y === -1 && colors.D) {
+      faceColors.D[1 - z][x + 1] = colors.D
+    }
+    if (z === 1 && colors.F) {
+      faceColors.F[1 - y][x + 1] = colors.F
+    }
+    if (z === -1 && colors.B) {
+      faceColors.B[1 - y][1 - x] = colors.B
+    }
+    if (x === 1 && colors.R) {
+      faceColors.R[1 - y][1 - z] = colors.R
+    }
+    if (x === -1 && colors.L) {
+      faceColors.L[1 - y][z + 1] = colors.L
+    }
+  }
+
+  return faceColors
+}
+
+/**
+ * 获取中心块在面数组中的坐标
+ */
+function getFaceCenterCoords(_faceId: FaceCubieId): [number, number] {
+  // 中心块总是在面的中心位置 (1, 1)
+  return [1, 1]
 }
 
 /**
