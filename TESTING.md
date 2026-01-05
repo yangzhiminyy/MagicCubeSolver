@@ -11,25 +11,25 @@ Python 的 `kociemba` 库认为我们的 cubestring 格式不正确。我们需�
 
 ## 测试工具
 
-### 1. test_kociemba_format.py
+### 1. test/test_kociemba_format.py
 基础测试工具，用于测试 cubestring 格式。
 
 ```bash
-python test_kociemba_format.py <cubestring>
+python test/test_kociemba_format.py <cubestring>
 ```
 
-### 2. test_cubestring.py
+### 2. test/test_cubestring.py
 完整的测试工具，用于分析 cubestring。
 
 ```bash
-python test_cubestring.py <cubestring>
+python test/test_cubestring.py <cubestring>
 ```
 
-### 3. test_kociemba_correct_format.py
+### 3. test/test_kociemba_correct_format.py
 用于检查 cubestring 的有效性和字符分布。
 
 ```bash
-python test_kociemba_correct_format.py <cubestring>
+python test/test_kociemba_correct_format.py <cubestring>
 ```
 
 ## 使用方法
@@ -37,7 +37,7 @@ python test_kociemba_correct_format.py <cubestring>
 1. **在浏览器中点击求解**，从控制台复制 cubestring
 2. **运行 Python 测试**：
    ```bash
-   python test_cubestring.py <从控制台复制的cubestring>
+   python test/test_cubestring.py <从控制台复制的cubestring>
    ```
 3. **查看结果**，如果 Python 返回错误，说明格式不对
 
