@@ -90,6 +90,17 @@ The application supports multiple solving algorithms, selectable via the UI:
    - **Status**: Simplified implementation, may need optimization or full group theory implementation
    - **Workaround**: Use other algorithms for practical solving
 
+2. **Animation State Update Race Condition**
+   - **Issue**: When clicking "Next Step" very quickly after solving, the cube may not be correctly restored
+   - **Root Cause**: The `applyMove` calls after animation completion may not execute in the correct order due to React's asynchronous state updates
+   - **Impact**: If steps are clicked too quickly, the final cube state may be incorrect
+   - **Status**: Known issue, needs fix
+   - **Workaround**: Wait for each animation to complete before clicking the next step
+   - **Technical Details**: 
+     - Animation completion triggers `setCubieBasedState(prev => applyMove(prev, move))` 
+     - Multiple rapid clicks can cause state updates to be applied out of order
+     - The `isAnimating` check may not be sufficient to prevent race conditions
+
 3. **Animation Reset**
    - **Issue**: After animation completes, cubies are reset to their original positions before the new state is applied
    - **Impact**: Brief visual glitch during state transition
@@ -271,6 +282,17 @@ MIT
    - **影响**：复杂状态可能在超时期间内无法求解
    - **状态**：简化实现，可能需要优化或完整群论实现
    - **解决方法**：实际求解时使用其他算法
+
+2. **动画状态更新竞态条件**
+   - **问题**：求解后快速点击"下一步"时，魔方可能无法正确还原
+   - **根本原因**：动画完成后的 `applyMove` 调用可能由于 React 的异步状态更新而无法按正确顺序执行
+   - **影响**：如果步骤点击过快，最终的魔方状态可能不正确
+   - **状态**：已知问题，需要修复
+   - **解决方法**：在点击下一步之前等待每个动画完成
+   - **技术细节**：
+     - 动画完成时触发 `setCubieBasedState(prev => applyMove(prev, move))`
+     - 多次快速点击可能导致状态更新顺序混乱
+     - `isAnimating` 检查可能不足以防止竞态条件
 
 3. **动画重置**
    - **问题**：动画完成后，小块在应用新状态之前会重置到原始位置
