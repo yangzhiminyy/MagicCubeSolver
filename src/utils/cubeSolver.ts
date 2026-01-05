@@ -67,22 +67,26 @@ export function solveByIDAStar(cubieBasedState: CubieBasedCubeState, maxDepth: n
     let diff = 0
     const solved = createSolvedCubieBasedCube()
     
-    // 检查角块（简化版本：只检查位置，不检查orientation）
+    // 检查角块（比较坐标）
     for (const [id, corner] of Object.entries(state.corners)) {
       const solvedCorner = solved.corners[id as keyof typeof solved.corners]
-      if (corner.position !== solvedCorner.position) {
+      // 比较坐标数组
+      if (corner.coordinate[0] !== solvedCorner.coordinate[0] ||
+          corner.coordinate[1] !== solvedCorner.coordinate[1] ||
+          corner.coordinate[2] !== solvedCorner.coordinate[2]) {
         diff++
       }
-      // 注意：由于现在使用6个面的颜色，颜色已经在colors中，不需要单独检查orientation
     }
     
-    // 检查边块（简化版本：只检查位置，不检查orientation）
+    // 检查边块（比较坐标）
     for (const [id, edge] of Object.entries(state.edges)) {
       const solvedEdge = solved.edges[id as keyof typeof solved.edges]
-      if (edge.position !== solvedEdge.position) {
+      // 比较坐标数组
+      if (edge.coordinate[0] !== solvedEdge.coordinate[0] ||
+          edge.coordinate[1] !== solvedEdge.coordinate[1] ||
+          edge.coordinate[2] !== solvedEdge.coordinate[2]) {
         diff++
       }
-      // 注意：由于现在使用6个面的颜色，颜色已经在colors中，不需要单独检查orientation
     }
     
     // 每个错误的块至少需要一步来修复
