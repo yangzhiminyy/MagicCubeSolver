@@ -50,33 +50,34 @@ export type FaceCubieId = 'U' | 'D' | 'F' | 'B' | 'L' | 'R'
 export type CubieId = CornerCubieId | EdgeCubieId | FaceCubieId
 
 // Cubie 颜色映射：每个cubie都有6个面的颜色（不可见面用黑色）
+// 使用 upper/down/front/back/left/right 表示 cubie 的实时方位，以区分魔方的固定面 U/D/F/B/L/R
 export interface CubieColors {
-  U: FaceColor
-  D: FaceColor
-  F: FaceColor
-  B: FaceColor
-  L: FaceColor
-  R: FaceColor
+  upper: FaceColor   // cubie 的上表面（对应魔方的 U 面）
+  down: FaceColor    // cubie 的下表面（对应魔方的 D 面）
+  front: FaceColor   // cubie 的前表面（对应魔方的 F 面）
+  back: FaceColor    // cubie 的后表面（对应魔方的 B 面）
+  left: FaceColor    // cubie 的左表面（对应魔方的 L 面）
+  right: FaceColor   // cubie 的右表面（对应魔方的 R 面）
 }
 
 // 角块：有6个面的颜色（3个可见面，3个不可见面用黑色）
 export interface CornerCubie {
   id: CornerCubieId
-  position: CornerCubieId  // 当前位置
+  coordinate: [number, number, number]  // 坐标 [x, y, z]，取值 -1, 0, 1
   colors: CubieColors      // 颜色（可旋转）
 }
 
 // 边块：有6个面的颜色（2个可见面，4个不可见面用黑色）
 export interface EdgeCubie {
   id: EdgeCubieId
-  position: EdgeCubieId    // 当前位置
+  coordinate: [number, number, number]  // 坐标 [x, y, z]，取值 -1, 0, 1
   colors: CubieColors      // 颜色（可旋转）
 }
 
 // 面块：只有1个面（中心块）
 export interface FaceCubie {
   id: FaceCubieId
-  position: FaceCubieId    // 中心块位置固定
+  coordinate: [number, number, number]  // 坐标 [x, y, z]，固定不变
   color: FaceColor         // 颜色（不变）
 }
 
