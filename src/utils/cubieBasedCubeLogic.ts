@@ -545,11 +545,11 @@ function getCornerFaceColors(corner: CornerCubie, position: CornerCubieId): Part
   for (let i = 0; i < positionFaces.length; i++) {
     const targetFace = positionFaces[i]
     // 根据orientation计算源索引
-    // 对于 positionFaces[i]，应该显示 originalFaces[(i + orientation) % 3] 的颜色
-    // orientation = 0: i -> i (originalFaces[0] -> positionFaces[0])
-    // orientation = 1: i -> (i+1)%3 (originalFaces[0] -> positionFaces[1])
-    // orientation = 2: i -> (i+2)%3 (originalFaces[0] -> positionFaces[2])
-    const sourceIndex = (i + corner.orientation) % 3
+    // orientation = 0: originalFaces[0] -> positionFaces[0], originalFaces[1] -> positionFaces[1], originalFaces[2] -> positionFaces[2]
+    // orientation = 1: originalFaces[0] -> positionFaces[1], originalFaces[1] -> positionFaces[2], originalFaces[2] -> positionFaces[0]
+    // orientation = 2: originalFaces[0] -> positionFaces[2], originalFaces[1] -> positionFaces[0], originalFaces[2] -> positionFaces[1]
+    // 对于 positionFaces[i]，应该显示 originalFaces[(i - orientation + 3) % 3] 的颜色
+    const sourceIndex = (i - corner.orientation + 3) % 3
     const sourceFace = originalFaces[sourceIndex]
     if (corner.colors[sourceFace]) {
       result[targetFace] = corner.colors[sourceFace]!
@@ -585,16 +585,32 @@ function getEdgeFaceColors(edge: EdgeCubie, position: EdgeCubieId): Partial<Reco
   if (edge.id.includes('R')) originalFaces.push('R')
 
   // 根据orientation翻转颜色映射
+  // 确保面的顺序一致（按照U/D, F/B, R/L的优先级排序）
+  const sortedPositionFaces = [...positionFaces].sort((a, b) => {
+    const order: Record<Face, number> = { U: 0, D: 1, F: 2, B: 3, R: 4, L: 5 }
+    return order[a] - order[b]
+  })
+  const sortedOriginalFaces = [...originalFaces].sort((a, b) => {
+    const order: Record<Face, number> = { U: 0, D: 1, F: 2, B: 3, R: 4, L: 5 }
+    return order[a] - order[b]
+  })
+  
   const result: Partial<Record<Face, FaceColor>> = {}
   
   if (edge.orientation === 0) {
-    // 正常方向
-    result[positionFaces[0]] = edge.colors[originalFaces[0]]
-    result[positionFaces[1]] = edge.colors[originalFaces[1]]
+    // 正常方向：按照排序后的顺序映射
+    for (let i = 0; i < sortedPositionFaces.length; i++) {
+      const posFace = sortedPositionFaces[i]
+      const origFace = sortedOriginalFaces[i]
+      result[posFace] = edge.colors[origFace]
+    }
   } else {
-    // 翻转方向
-    result[positionFaces[0]] = edge.colors[originalFaces[1]]
-    result[positionFaces[1]] = edge.colors[originalFaces[0]]
+    // 翻转方向（orientation = 1）：交换映射
+    for (let i = 0; i < sortedPositionFaces.length; i++) {
+      const posFace = sortedPositionFaces[i]
+      const origFace = sortedOriginalFaces[(i + 1) % sortedOriginalFaces.length]
+      result[posFace] = edge.colors[origFace]
+    }
   }
 
   return result
