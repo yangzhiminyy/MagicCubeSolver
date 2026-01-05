@@ -5,7 +5,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Face, FaceColor } from '../utils/cubeTypes'
-import { CubeInputState, FaceInputState, createEmptyInputState, inputStateToCubeState, isInputStateComplete } from '../utils/cubeInputConverter'
+import { CubeInputState, createEmptyInputState, inputStateToCubeState, isInputStateComplete } from '../utils/cubeInputConverter'
 import { requestCamera, stopCamera, recognizeFaceColors } from '../utils/cameraColorRecognition'
 import FaceInput from './FaceInput'
 import './CameraInputModal.css'
@@ -70,15 +70,9 @@ export default function CameraInputModal({ isOpen, onClose, onComplete }: Camera
   }, [stream])
 
   const handleCapture = () => {
-    if (!videoRef.current || !canvasRef.current) return
+    if (!videoRef.current) return
 
     const video = videoRef.current
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')!
-
-    // 设置 canvas 尺寸
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
 
     // 计算识别区域（假设魔方在画面中心，占据一定比例）
     const faceWidth = Math.min(video.videoWidth, video.videoHeight) * 0.6

@@ -4,7 +4,7 @@
  */
 
 import { FaceColor, Face, CubeState, CubieBasedCubeState } from './cubeTypes'
-import { createSolvedCubieBasedCube, cubieBasedStateToFaceColors } from './cubieBasedCubeLogic'
+import { faceColorsToCubieBasedState } from './faceColorsToCubieBased'
 
 /**
  * 每个面的输入状态
@@ -55,23 +55,10 @@ export function inputStateToCubeState(inputState: CubeInputState): CubeState {
 
 /**
  * 将 CubeInputState 转换为 CubieBasedCubeState
- * 
- * 注意：这是一个简化的实现，通过创建已解决状态然后应用移动来匹配输入状态。
- * 更准确的实现需要从面颜色直接推断每个 cubie 的位置和方向，这比较复杂。
- * 当前实现：先创建已解决状态，然后尝试找到一组移动来匹配输入状态。
- * 
- * 对于初始状态录入，我们可以直接使用 CubeState，然后在需要时转换为 CubieBasedCubeState。
- * 或者，我们可以实现一个更复杂的算法来从面颜色推断 cubie 状态。
- * 
- * 暂时使用一个简化方法：假设输入状态是有效的，直接使用 CubeState。
- * 如果需要 CubieBasedCubeState，可以通过其他方式（如求解算法）来获得。
  */
 export function inputStateToCubieBasedState(inputState: CubeInputState): CubieBasedCubeState {
-  // TODO: 实现从 CubeState 到 CubieBasedCubeState 的完整转换
-  // 这需要分析每个面的颜色，推断每个 cubie 的位置和方向
-  // 当前返回已解决状态作为占位符
-  // 实际使用时，应该通过求解算法或其他方式获得正确的 CubieBasedCubeState
-  return createSolvedCubieBasedCube()
+  const cubeState = inputStateToCubeState(inputState)
+  return faceColorsToCubieBasedState(cubeState)
 }
 
 /**

@@ -68,6 +68,14 @@ export default function ControlPanel({
           >
             求解
           </button>
+          <button 
+            className="btn btn-secondary" 
+            onClick={onCameraInput}
+            disabled={isAnimating}
+            title="使用摄像头录入魔方状态"
+          >
+            📷 摄像头录入
+          </button>
         </div>
         
         <div className="algorithm-selector">

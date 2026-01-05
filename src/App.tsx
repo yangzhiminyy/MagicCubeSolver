@@ -189,26 +189,19 @@ function App() {
   }
 
   const handleCameraInputComplete = async (cubeState: CubeState) => {
-    // 将 CubeState 转换为 CubieBasedCubeState
-    // 由于没有直接的转换函数，我们使用求解算法来获得正确的状态
-    // 或者，我们可以尝试通过分析颜色来推断 cubie 状态（这比较复杂）
-    
-    // 临时方案：使用 Kociemba 算法求解，然后反向应用移动来获得初始状态
-    // 更好的方案：实现一个从 CubeState 到 CubieBasedCubeState 的转换函数
     try {
-      // 先创建一个临时的 cubieBasedState（已解决状态）
-      // 然后通过求解算法找到从已解决状态到当前状态的移动序列
-      // 反向应用这些移动来获得正确的 cubieBasedState
+      // 将 CubeState 转换为 CubieBasedCubeState
+      const { faceColorsToCubieBasedState } = await import('./utils/faceColorsToCubieBased')
+      const cubieBasedState = faceColorsToCubieBasedState(cubeState)
       
-      // TODO: 实现完整的转换函数
-      // 当前使用简化方案：假设输入状态是有效的，通过求解算法来验证和转换
-      // 从 CubeState 到 CubieBasedCubeState 的转换比较复杂，需要分析每个面的颜色
-      // 推断每个 cubie 的位置和方向
-      console.warn('Camera input: 需要实现从 CubeState 到 CubieBasedCubeState 的完整转换')
-      console.log('录入的 CubeState:', cubeState)
+      // 更新魔方状态
+      setCubieBasedState(cubieBasedState)
+      setSolution([])
+      setCurrentStep(0)
+      setScrambleMoves([])
+      setMoveHistory([])
       
-      // 临时方案：保持当前状态，提示用户这个功能还在开发中
-      alert('摄像头录入功能已实现，但 CubeState 到 CubieBasedCubeState 的转换需要进一步完善。\n\n当前可以使用手动操作来设置魔方状态。')
+      console.log('摄像头录入完成，已更新魔方状态')
       setShowCameraModal(false)
     } catch (error) {
       console.error('摄像头录入完成处理失败:', error)
