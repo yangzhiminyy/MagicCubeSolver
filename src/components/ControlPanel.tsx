@@ -8,6 +8,7 @@ interface ControlPanelProps {
   onMove: (move: Move) => void
   onStepForward: () => void
   onStepBackward: () => void
+  onCameraInput: () => void
   isAnimating: boolean
   solution: Move[]
   currentStep: number
@@ -30,6 +31,7 @@ export default function ControlPanel({
   onMove,
   onStepForward,
   onStepBackward,
+  onCameraInput,
   isAnimating,
   solution,
   currentStep,
