@@ -23,17 +23,34 @@ export interface CubeInputState {
   faces: Record<Face, FaceInputState>
 }
 
+// 中心块颜色固定
+const CENTER_COLORS: Record<Face, FaceColor> = {
+  U: 'white',
+  D: 'yellow',
+  F: 'red',
+  B: 'orange',
+  L: 'green',
+  R: 'blue',
+}
+
 /**
  * 创建空的输入状态
  */
 export function createEmptyInputState(): CubeInputState {
+  const createFaceColors = (face: Face): FaceColor[][] => {
+    const colors: FaceColor[][] = Array(3).fill(null).map(() => Array(3).fill('black') as FaceColor[])
+    // 中心块设置为固定颜色
+    colors[1][1] = CENTER_COLORS[face]
+    return colors
+  }
+
   const faces: Record<Face, FaceInputState> = {
-    U: { face: 'U', colors: Array(3).fill(null).map(() => Array(3).fill('black') as FaceColor[]), confidence: Array(3).fill(null).map(() => Array(3).fill(0)), isComplete: false },
-    D: { face: 'D', colors: Array(3).fill(null).map(() => Array(3).fill('black') as FaceColor[]), confidence: Array(3).fill(null).map(() => Array(3).fill(0)), isComplete: false },
-    F: { face: 'F', colors: Array(3).fill(null).map(() => Array(3).fill('black') as FaceColor[]), confidence: Array(3).fill(null).map(() => Array(3).fill(0)), isComplete: false },
-    B: { face: 'B', colors: Array(3).fill(null).map(() => Array(3).fill('black') as FaceColor[]), confidence: Array(3).fill(null).map(() => Array(3).fill(0)), isComplete: false },
-    L: { face: 'L', colors: Array(3).fill(null).map(() => Array(3).fill('black') as FaceColor[]), confidence: Array(3).fill(null).map(() => Array(3).fill(0)), isComplete: false },
-    R: { face: 'R', colors: Array(3).fill(null).map(() => Array(3).fill('black') as FaceColor[]), confidence: Array(3).fill(null).map(() => Array(3).fill(0)), isComplete: false },
+    U: { face: 'U', colors: createFaceColors('U'), confidence: Array(3).fill(null).map(() => Array(3).fill(0)), isComplete: false },
+    D: { face: 'D', colors: createFaceColors('D'), confidence: Array(3).fill(null).map(() => Array(3).fill(0)), isComplete: false },
+    F: { face: 'F', colors: createFaceColors('F'), confidence: Array(3).fill(null).map(() => Array(3).fill(0)), isComplete: false },
+    B: { face: 'B', colors: createFaceColors('B'), confidence: Array(3).fill(null).map(() => Array(3).fill(0)), isComplete: false },
+    L: { face: 'L', colors: createFaceColors('L'), confidence: Array(3).fill(null).map(() => Array(3).fill(0)), isComplete: false },
+    R: { face: 'R', colors: createFaceColors('R'), confidence: Array(3).fill(null).map(() => Array(3).fill(0)), isComplete: false },
   }
   return { faces }
 }
@@ -59,6 +76,23 @@ export function inputStateToCubeState(inputState: CubeInputState): CubeState {
 export function inputStateToCubieBasedState(inputState: CubeInputState): CubieBasedCubeState {
   const cubeState = inputStateToCubeState(inputState)
   return faceColorsToCubieBasedState(cubeState)
+}
+
+/**
+ * 检查某个面的所有颜色是否都已设置（不是black）
+ */
+export function isFaceComplete(faceState: FaceInputState): boolean {
+  // 检查所有9个格子，中心块固定颜色不算，其他8个必须都不是black
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      // 跳过中心块（中心块颜色是固定的）
+      if (row === 1 && col === 1) continue
+      if (faceState.colors[row][col] === 'black') {
+        return false
+      }
+    }
+  }
+  return true
 }
 
 /**

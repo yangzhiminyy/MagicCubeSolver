@@ -194,7 +194,8 @@ export function recognizeFaceColors(
   faceWidth: number,
   faceHeight: number,
   offsetX: number = 0,
-  offsetY: number = 0
+  offsetY: number = 0,
+  mirror: boolean = false  // 是否镜像（用于左右翻转）
 ): { colors: FaceColor[][], confidence: number[][] } {
   const colors: FaceColor[][] = []
   const confidence: number[][] = []
@@ -206,7 +207,9 @@ export function recognizeFaceColors(
     colors[row] = []
     confidence[row] = []
     for (let col = 0; col < 3; col++) {
-      const x = offsetX + col * cellWidth
+      // 如果镜像，需要翻转列坐标
+      const actualCol = mirror ? (2 - col) : col
+      const x = offsetX + actualCol * cellWidth
       const y = offsetY + row * cellHeight
       
       const rgb = extractColorFromRegion(video, x, y, cellWidth, cellHeight)
