@@ -12,6 +12,8 @@ An online Rubik's Cube solver built with React and Three.js, featuring 3D visual
 - 🎬 **Smooth Animations**: 3D rotation animations for all moves
 - 📊 **Step-by-step Playback**: View solution steps and replay them step by step
 - 🐛 **Debug Mode**: Toggle coordinate display for each face
+- 📷 **Camera Input**: Capture cube state using camera with color recognition
+- 🎨 **Manual Color Input**: Intuitive 6-face unfolded layout with simple color picker
 
 ## Architecture
 
@@ -30,15 +32,21 @@ The application is built with a component-based architecture:
 - **`RubiksCube.tsx`**: 3D cube rendering component with animation support
 - **`Cubie.tsx`**: Individual cubie component with color and coordinate display
 - **`ControlPanel.tsx`**: UI controls for scrambling, solving, and manual moves
+- **`CameraInputModal.tsx`**: Camera-based cube state input with color recognition
+- **`CubeNetInput.tsx`**: Unfolded 6-face input layout for manual color adjustment
+- **`SimpleColorPicker.tsx`**: Simple 2x3 grid color picker for quick color selection
 
 ### Core Utilities
 
 - **`cubeTypes.ts`**: TypeScript type definitions for cube state, moves, and colors
-- **`cubeLogic.ts`**: Core cube rotation logic and state manipulation
+- **`cubieBasedCubeLogic.ts`**: Cubie-based cube rotation logic and state manipulation
 - **`cubeAnimation.ts`**: Animation system for smooth 3D rotations
 - **`cubeSolver.ts`**: Solver dispatcher supporting multiple algorithms
 - **`cubeConverter.ts`**: Conversion between internal state and external formats (cubestring)
 - **`thistlethwaite.ts`**: Thistlethwaite four-stage algorithm implementation
+- **`cameraColorRecognition.ts`**: Camera-based color recognition utilities
+- **`cubeInputConverter.ts`**: Conversion between input state and cube state
+- **`faceColorsToCubieBased.ts`**: Conversion from facelet colors to cubie-based state
 
 ## Supported Algorithms
 
@@ -154,11 +162,17 @@ npm run build
 2. **Zoom**: Mouse wheel
 3. **Scramble**: Click "Scramble" button
 4. **Manual Moves**: Click rotation buttons in control panel (R, R', L, L', etc.)
-5. **Solve**: 
+5. **Camera Input**: 
+   - Click "Camera Input" button to open camera input modal
+   - Click center block of each face to activate camera
+   - Position cube in front of camera and click center block again to recognize colors
+   - Click edge blocks to manually adjust colors using the simple color picker
+   - All 6 faces are displayed in an unfolded layout for easy input
+6. **Solve**: 
    - Select an algorithm from the dropdown
    - Click "Solve" button
    - Use "Previous Step"/"Next Step" buttons to navigate through solution
-6. **Debug Mode**: Toggle coordinate display for each face using the checkboxes
+7. **Debug Mode**: Toggle coordinate display for each face using the checkboxes
 
 ## Project Structure
 
@@ -167,21 +181,27 @@ src/
   ├── components/              # React components
   │   ├── RubiksCube.tsx      # 3D cube rendering component
   │   ├── Cubie.tsx           # Individual cubie component
-  │   └── ControlPanel.tsx    # Control panel UI
+  │   ├── ControlPanel.tsx    # Control panel UI
+  │   ├── CameraInputModal.tsx # Camera input modal
+  │   ├── CubeNetInput.tsx    # Unfolded 6-face input layout
+  │   └── SimpleColorPicker.tsx # Simple color picker (2x3 grid)
   ├── utils/                  # Utility functions
   │   ├── cubeTypes.ts        # TypeScript type definitions
-  │   ├── cubeLogic.ts        # Cube rotation logic
+  │   ├── cubieBasedCubeLogic.ts # Cubie-based cube rotation logic
   │   ├── cubeAnimation.ts    # Animation system
   │   ├── cubeSolver.ts       # Solver dispatcher
   │   ├── cubeConverter.ts    # State format conversion
-  │   └── thistlethwaite.ts    # Thistlethwaite algorithm
+  │   ├── thistlethwaite.ts    # Thistlethwaite algorithm
+  │   ├── cameraColorRecognition.ts # Camera color recognition
+  │   ├── cubeInputConverter.ts # Input state conversion
+  │   └── faceColorsToCubieBased.ts # Facelet to cubie conversion
   ├── App.tsx                 # Main application component
   └── main.tsx                # Entry point
 ```
 
 ## Future Optimization Plans
 
-See [OPTIMIZATION_PLAN.md](./OPTIMIZATION_PLAN.md) for detailed plans on:
+See [OPTIMIZATION_PLAN.md](./doc/OPTIMIZATION_PLAN.md) for detailed plans on:
 - Camera-based initial state input system
 - Cubie-based data structure refactoring
 - Texture marking system for cubies
@@ -205,6 +225,8 @@ MIT
 - 🎬 **平滑动画**：所有移动都有3D旋转动画
 - 📊 **步骤回放**：查看求解步骤并逐步回放
 - 🐛 **调试模式**：可以切换显示每个面的坐标
+- 📷 **摄像头录入**：使用摄像头识别魔方颜色状态
+- 🎨 **手动颜色录入**：直观的展开图式六面录入界面，配备简洁的颜色选择器
 
 ## 架构设计
 
@@ -347,11 +369,17 @@ npm run build
 2. **缩放**：鼠标滚轮
 3. **打乱魔方**：点击"打乱"按钮
 4. **手动操作**：点击控制面板中的旋转按钮（R, R', L, L'等）
-5. **自动求解**：
+5. **摄像头录入**：
+   - 点击"摄像头录入"按钮打开录入界面
+   - 点击每个面的中心块激活摄像头
+   - 将魔方对准摄像头，再次点击中心块识别颜色
+   - 点击边缘色块可手动调整颜色（使用简洁的2x3颜色选择器）
+   - 六个面以展开图形式显示，方便录入
+6. **自动求解**：
    - 从下拉菜单中选择算法
    - 点击"求解"按钮
    - 使用"上一步"/"下一步"按钮逐步查看求解过程
-6. **调试模式**：使用复选框切换显示每个面的坐标
+7. **调试模式**：使用复选框切换显示每个面的坐标
 
 ## 项目结构
 
@@ -360,21 +388,27 @@ src/
   ├── components/              # React组件
   │   ├── RubiksCube.tsx      # 3D魔方渲染组件
   │   ├── Cubie.tsx           # 单个小块组件
-  │   └── ControlPanel.tsx    # 控制面板UI
+  │   ├── ControlPanel.tsx    # 控制面板UI
+  │   ├── CameraInputModal.tsx # 摄像头录入模态框
+  │   ├── CubeNetInput.tsx    # 展开图式六面录入界面
+  │   └── SimpleColorPicker.tsx # 简洁颜色选择器（2x3网格）
   ├── utils/                  # 工具函数
   │   ├── cubeTypes.ts        # TypeScript类型定义
-  │   ├── cubeLogic.ts        # 魔方旋转逻辑
+  │   ├── cubieBasedCubeLogic.ts # 基于Cubie的魔方旋转逻辑
   │   ├── cubeAnimation.ts    # 动画系统
   │   ├── cubeSolver.ts       # 求解器调度器
   │   ├── cubeConverter.ts    # 状态格式转换
-  │   └── thistlethwaite.ts   # Thistlethwaite算法
+  │   ├── thistlethwaite.ts   # Thistlethwaite算法
+  │   ├── cameraColorRecognition.ts # 摄像头颜色识别
+  │   ├── cubeInputConverter.ts # 录入状态转换
+  │   └── faceColorsToCubieBased.ts # 面颜色到Cubie转换
   ├── App.tsx                 # 主应用组件
   └── main.tsx                # 入口文件
 ```
 
 ## 未来优化计划
 
-详见 [OPTIMIZATION_PLAN.md](./OPTIMIZATION_PLAN.md)，包括：
+详见 [OPTIMIZATION_PLAN.md](./doc/OPTIMIZATION_PLAN.md)，包括：
 - 基于摄像头的初始状态录入系统
 - 基于 Cubie 的数据结构重构
 - Cubie 纹理标记系统

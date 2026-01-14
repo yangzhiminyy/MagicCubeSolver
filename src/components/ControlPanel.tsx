@@ -8,6 +8,7 @@ interface ControlPanelProps {
   onMove: (move: Move) => void
   onStepForward: () => void
   onStepBackward: () => void
+  onCameraInput: () => void
   isAnimating: boolean
   solution: Move[]
   currentStep: number
@@ -30,6 +31,7 @@ export default function ControlPanel({
   onMove,
   onStepForward,
   onStepBackward,
+  onCameraInput,
   isAnimating,
   solution,
   currentStep,
@@ -65,6 +67,14 @@ export default function ControlPanel({
             disabled={isAnimating}
           >
             求解
+          </button>
+          <button 
+            className="btn btn-secondary" 
+            onClick={onCameraInput}
+            disabled={isAnimating}
+            title="使用摄像头录入魔方状态"
+          >
+            📷 摄像头录入
           </button>
         </div>
         

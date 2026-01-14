@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
 import RubiksCube from './components/RubiksCube'
 import ControlPanel from './components/ControlPanel'
+import CameraInputModal from './components/CameraInputModal'
 import { Move, CubeState } from './utils/cubeTypes'
 import { createSolvedCubieBasedCube, applyMove, cubieBasedStateToFaceColors } from './utils/cubieBasedCubeLogic'
 import { CubieBasedCubeState } from './utils/cubeTypes'
@@ -30,6 +31,7 @@ function App() {
     L: false,
     R: false,
   })
+  const [showCameraModal, setShowCameraModal] = useState(false)
 
   const handleScramble = () => {
     if (isAnimating) return
@@ -182,6 +184,31 @@ function App() {
     }
   }
 
+  const handleCameraInput = () => {
+    setShowCameraModal(true)
+  }
+
+  const handleCameraInputComplete = async (cubeState: CubeState) => {
+    try {
+      // 将 CubeState 转换为 CubieBasedCubeState
+      const { faceColorsToCubieBasedState } = await import('./utils/faceColorsToCubieBased')
+      const cubieBasedState = faceColorsToCubieBasedState(cubeState)
+      
+      // 更新魔方状态
+      setCubieBasedState(cubieBasedState)
+      setSolution([])
+      setCurrentStep(0)
+      setScrambleMoves([])
+      setMoveHistory([])
+      
+      console.log('摄像头录入完成，已更新魔方状态')
+      setShowCameraModal(false)
+    } catch (error) {
+      console.error('摄像头录入完成处理失败:', error)
+      alert('处理录入数据时出错: ' + (error instanceof Error ? error.message : String(error)))
+    }
+  }
+
   return (
     <div className="app">
       <div className="canvas-container">
@@ -200,6 +227,7 @@ function App() {
         onMove={handleMove}
         onStepForward={handleStepForward}
         onStepBackward={handleStepBackward}
+        onCameraInput={handleCameraInput}
         isAnimating={isAnimating}
         solution={solution}
         currentStep={currentStep}
@@ -212,6 +240,12 @@ function App() {
             [face]: !prev[face as keyof typeof prev]
           }))
         }}
+      />
+      
+      <CameraInputModal
+        isOpen={showCameraModal}
+        onClose={() => setShowCameraModal(false)}
+        onComplete={handleCameraInputComplete}
       />
     </div>
   )

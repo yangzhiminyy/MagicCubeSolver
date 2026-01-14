@@ -1,0 +1,195 @@
+.cube-net-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.cube-net {
+  display: grid;
+  grid-template-areas:
+    ".   U   .   ."
+    "L   F   R   B"
+    ".   D   .   .";
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 15px;
+  padding: 20px;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.cube-net .face-net:nth-child(1) {
+  grid-area: U;
+}
+
+.cube-net .face-net:nth-child(2) {
+  grid-area: L;
+}
+
+.cube-net .face-net:nth-child(3) {
+  grid-area: F;
+}
+
+.cube-net .face-net:nth-child(4) {
+  grid-area: R;
+}
+
+.cube-net .face-net:nth-child(5) {
+  grid-area: B;
+}
+
+.cube-net .face-net:nth-child(6) {
+  grid-area: D;
+}
+
+.face-net {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: white;
+  border-radius: 6px;
+  border: 2px solid #ddd;
+  transition: all 0.3s ease;
+}
+
+.face-net.active {
+  border-color: #007bff;
+  box-shadow: 0 0 15px rgba(0, 123, 255, 0.3);
+  background: #f0f7ff;
+}
+
+.face-label {
+  font-size: 12px;
+  font-weight: bold;
+  color: #666;
+  text-align: center;
+}
+
+.face-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  width: 100%;
+  max-width: 120px;
+}
+
+.face-row {
+  display: contents;
+}
+
+.face-cell {
+  aspect-ratio: 1;
+  border: 1px solid #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  font-size: 10px;
+  font-weight: bold;
+  color: #333;
+}
+
+.face-cell:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.face-cell.center {
+  border: 2px solid #666;
+  font-size: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.face-cell.center:hover {
+  border-color: #007bff;
+  box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+}
+
+.face-cell.center-active {
+  border: 3px solid #007bff;
+  box-shadow: 0 0 15px rgba(0, 123, 255, 0.7);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(0, 123, 255, 1);
+  }
+}
+
+.face-cell.edge {
+  border: 1px solid #999;
+}
+
+.face-cell.edge:hover {
+  border-color: #007bff;
+}
+
+.center-icon {
+  font-size: 20px;
+  display: inline-block;
+  /* 白色背景需要特殊处理，使用阴影增强可见性 */
+}
+
+.cell-label {
+  font-size: 11px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.confidence-warning {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  color: #f44336;
+  font-weight: bold;
+}
+
+.face-complete-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  background: #4CAF50;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.cube-net-progress {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .cube-net {
+    grid-template-areas:
+      "U"
+      "F"
+      "D"
+      "L"
+      "R"
+      "B";
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .face-grid {
+    max-width: 150px;
+  }
+}

@@ -1,0 +1,110 @@
+.color-carousel-container {
+  position: fixed;
+  width: 280px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  z-index: 2000;
+  pointer-events: auto;
+}
+
+.color-carousel-track {
+  position: relative;
+  width: 100%;
+  height: 50px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #f5f5f5;
+}
+
+.color-carousel-items {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  will-change: transform;
+}
+
+.color-carousel-item {
+  flex-shrink: 0;
+  width: 50px;
+  height: 40px;
+  margin: 0 3px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ddd;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.color-carousel-item.selected {
+  width: 60px;
+  height: 50px;
+  border: 3px solid #007bff;
+  box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+  z-index: 10;
+  transform: scale(1.1);
+}
+
+.color-name {
+  font-size: 11px;
+  font-weight: bold;
+  color: #333;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.color-carousel-center-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 2px;
+  background: #007bff;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.color-carousel-hint {
+  font-size: 10px;
+  color: #666;
+  text-align: center;
+}
+
+.color-carousel-close-btn {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  color: #666;
+  transition: all 0.2s ease;
+  padding: 0;
+  z-index: 10;
+}
+
+.color-carousel-close-btn:hover {
+  background: rgba(0, 0, 0, 0.2);
+  color: #333;
+  transform: scale(1.1);
+}
+
+.color-carousel-close-btn:active {
+  transform: scale(0.95);
+}

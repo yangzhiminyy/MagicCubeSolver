@@ -1,0 +1,56 @@
+.simple-color-picker-container {
+  position: fixed;
+  width: 200px;
+  height: 140px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 2000;
+  pointer-events: auto;
+}
+
+.simple-color-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+.simple-color-picker-item {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 50px;
+}
+
+.simple-color-picker-item:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.simple-color-picker-item:active {
+  transform: scale(0.95);
+}
+
+.simple-color-picker-item.initial-highlight {
+  border: 3px solid #007bff;
+  box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+}
+
+.simple-color-picker-item .color-name {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+}
