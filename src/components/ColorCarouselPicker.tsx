@@ -13,6 +13,7 @@ interface ColorCarouselPickerProps {
   currentColor: FaceColor
   onSelect: (color: FaceColor) => void
   onClose: () => void
+  switchTrigger?: number // 外部触发的切换信号
 }
 
 const COLORS: FaceColor[] = ['white', 'yellow', 'red', 'orange', 'green', 'blue']
@@ -43,128 +44,96 @@ export default function ColorCarouselPicker({
   currentColor,
   onSelect,
   onClose,
+  switchTrigger,
 }: ColorCarouselPickerProps) {
   const [scrollPosition, setScrollPosition] = useState(0)
   const [selectedColor, setSelectedColor] = useState<FaceColor>(currentColor)
-  const [isPaused, setIsPaused] = useState(false)
-  const animationRef = useRef<number>()
   const containerRef = useRef<HTMLDivElement>(null)
 
   // 初始化：找到当前颜色在列表中的位置
   useEffect(() => {
     if (isVisible) {
+      console.log('[ColorCarouselPicker] 初始化，currentColor:', currentColor)
       const currentIndex = COLORS.indexOf(currentColor)
       const itemWidth = 56 // 50px + 6px margin
       const centerOffset = 140 // 280px / 2
       const initialPosition = currentIndex * itemWidth - centerOffset
       setScrollPosition(initialPosition)
       setSelectedColor(currentColor)
-      setIsPaused(false) // 重新打开时恢复滚动
-    } else {
-      // 当不可见时，停止动画并重置
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-        animationRef.current = undefined
-      }
-      setIsPaused(false)
+      console.log('[ColorCarouselPicker] 初始化完成，currentIndex:', currentIndex, 'initialPosition:', initialPosition)
     }
   }, [isVisible, currentColor])
 
-  // 滚动动画
+  // 响应外部切换触发器
   useEffect(() => {
-    if (!isVisible || isPaused) {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-        animationRef.current = undefined
-      }
-      return
+    console.log('[ColorCarouselPicker] switchTrigger 变化:', switchTrigger)
+    if (switchTrigger && switchTrigger > 0) {
+      console.log('[ColorCarouselPicker] 触发颜色切换')
+      handleSwitchColor()
     }
+  }, [switchTrigger])
 
-    const animate = () => {
-      setScrollPosition(prev => {
-        const newPosition = prev + 3 // 加快滚动速度：每次滚动3px
-        const itemWidth = 56 // 50px + 6px margin
-        const centerOffset = 140 // 280px / 2
-        
-        // 计算当前选中的颜色索引
-        const index = Math.floor((newPosition + centerOffset) / itemWidth) % COLORS.length
-        const normalizedIndex = index < 0 ? COLORS.length + index : index
-        const newSelectedColor = COLORS[normalizedIndex]
-        
-        if (newSelectedColor !== selectedColor) {
-          setSelectedColor(newSelectedColor)
-          onSelect(newSelectedColor) // 实时更新颜色
-        }
-        
-        return newPosition
-      })
-      animationRef.current = requestAnimationFrame(animate)
-    }
+  // 自动滚动动画已移除，现在只通过点击切换颜色
 
-    animationRef.current = requestAnimationFrame(animate)
+  // 手动切换颜色（点击菜单时）
+  const handleSwitchColor = () => {
+    console.log('[ColorCarouselPicker] handleSwitchColor 被调用，当前颜色:', selectedColor)
+    // 切换到下一个颜色
+    const currentIndex = COLORS.indexOf(selectedColor)
+    const nextIndex = (currentIndex + 1) % COLORS.length
+    const nextColor = COLORS[nextIndex]
+    console.log('[ColorCarouselPicker] 切换颜色:', selectedColor, '->', nextColor, '索引:', currentIndex, '->', nextIndex)
+    setSelectedColor(nextColor)
+    onSelect(nextColor)
+    
+    // 更新滚动位置以显示新颜色
+    const itemWidth = 56
+    const centerOffset = 140
+    const newPosition = nextIndex * itemWidth - centerOffset
+    setScrollPosition(newPosition)
+    console.log('[ColorCarouselPicker] 更新滚动位置:', newPosition)
+  }
 
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-        animationRef.current = undefined
-      }
-    }
-  }, [isVisible, isPaused, selectedColor, onSelect])
-
-  // 监听鼠标/触摸事件，松开时暂停
-  useEffect(() => {
-    if (!isVisible) {
-      setIsPaused(false)
-      return
-    }
-
-    // 菜单刚显示时，先滚动一段时间（比如1秒），然后暂停
-    const autoPauseTimer = setTimeout(() => {
-      setIsPaused(true)
-    }, 1000) // 1秒后自动暂停
-
-    const handleMouseUp = () => {
-      setIsPaused(true) // 松开时立即暂停
-    }
-
-    const handleTouchEnd = () => {
-      setIsPaused(true) // 松开时立即暂停
-    }
-
-    // 监听全局事件
-    window.addEventListener('mouseup', handleMouseUp, { once: true })
-    window.addEventListener('touchend', handleTouchEnd, { once: true })
-
-    return () => {
-      clearTimeout(autoPauseTimer)
-      window.removeEventListener('mouseup', handleMouseUp)
-      window.removeEventListener('touchend', handleTouchEnd)
-    }
-  }, [isVisible])
+  // 直接选择颜色（点击颜色项）
+  const handleColorItemClick = (color: FaceColor) => {
+    setSelectedColor(color)
+    onSelect(color)
+    
+    // 更新滚动位置以显示选中的颜色
+    const itemWidth = 56
+    const centerOffset = 140
+    const colorIndex = COLORS.indexOf(color)
+    const newPosition = colorIndex * itemWidth - centerOffset
+    setScrollPosition(newPosition)
+  }
 
   if (!isVisible) return null
 
   // 计算传送带需要显示的颜色项（为了无限循环效果，需要重复）
-  const itemsToShow = 20 // 显示20个颜色项
+  // 增加数量以确保所有颜色都能正常显示，即使滚动到边界
+  const itemsToShow = 50 // 显示50个颜色项，确保有足够的颜色显示
   const allItems: FaceColor[] = []
   for (let i = 0; i < itemsToShow; i++) {
     allItems.push(...COLORS)
   }
 
+  // 移除 document 点击监听，改用关闭按钮
+
   return (
     <div
-      className="color-carousel-overlay"
-      onClick={onClose}
+      ref={containerRef}
+      className="color-carousel-container"
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+      }}
+      onClick={e => {
+        console.log('[ColorCarouselPicker] 菜单容器被点击')
+        e.stopPropagation()
+        // 点击菜单容器时，切换颜色
+        handleSwitchColor()
+      }}
     >
-      <div
-        ref={containerRef}
-        className="color-carousel-container"
-        style={{
-          left: `${position.x}px`,
-          top: `${position.y}px`,
-        }}
-        onClick={e => e.stopPropagation()}
-      >
         <div className="color-carousel-track">
           <div
             className="color-carousel-items"
@@ -175,8 +144,9 @@ export default function ColorCarouselPicker({
             {allItems.map((color, index) => {
               const itemWidth = 56 // 50px + 6px margin
               const centerOffset = 140
-              const isSelected = color === selectedColor && 
-                Math.abs((index * itemWidth - scrollPosition - centerOffset) % (COLORS.length * itemWidth)) < 30
+              // 计算当前项相对于中心的位置
+              const itemPosition = index * itemWidth - scrollPosition - centerOffset
+              const isSelected = color === selectedColor && Math.abs(itemPosition) < 30
               
               return (
                 <div
@@ -184,6 +154,10 @@ export default function ColorCarouselPicker({
                   className={`color-carousel-item ${isSelected ? 'selected' : ''}`}
                   style={{
                     backgroundColor: COLOR_HEX[color],
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleColorItemClick(color)
                   }}
                 >
                   <span className="color-name">{COLOR_NAMES[color]}</span>
@@ -194,9 +168,19 @@ export default function ColorCarouselPicker({
         </div>
         <div className="color-carousel-center-indicator"></div>
         <div className="color-carousel-hint">
-          松开确定选择
+          点击切换颜色 | 点击颜色项直接选择
         </div>
-      </div>
+      <button
+        className="color-carousel-close-btn"
+        onClick={(e) => {
+          e.stopPropagation()
+          console.log('[ColorCarouselPicker] 关闭按钮被点击')
+          onClose()
+        }}
+        title="关闭"
+      >
+        ×
+      </button>
     </div>
   )
 }

@@ -135,6 +135,8 @@
 
 .center-icon {
   font-size: 20px;
+  display: inline-block;
+  /* 白色背景需要特殊处理，使用阴影增强可见性 */
 }
 
 .cell-label {

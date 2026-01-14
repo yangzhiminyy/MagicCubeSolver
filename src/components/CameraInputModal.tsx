@@ -8,6 +8,7 @@ import { Face, FaceColor } from '../utils/cubeTypes'
 import { CubeInputState, createEmptyInputState, inputStateToCubeState, isInputStateComplete, isFaceComplete } from '../utils/cubeInputConverter'
 import { requestCamera, stopCamera, recognizeFaceColors } from '../utils/cameraColorRecognition'
 import CubeNetInput from './CubeNetInput'
+import OperationInstructions from './OperationInstructions'
 import './CameraInputModal.css'
 
 interface CameraInputModalProps {
@@ -76,7 +77,13 @@ export default function CameraInputModal({ isOpen, onClose, onComplete }: Camera
   }, [stream])
 
   const handleFaceActivate = (face: Face) => {
-    setActiveFace(face)
+    // 如果点击的是已激活的面，执行识别颜色
+    if (activeFace === face && stream) {
+      handleCapture()
+    } else {
+      // 第一次点击或切换面：激活该面，打开摄像头
+      setActiveFace(face)
+    }
   }
 
   const handleCapture = () => {
@@ -91,6 +98,7 @@ export default function CameraInputModal({ isOpen, onClose, onComplete }: Camera
     const offsetY = (video.videoHeight - faceHeight) / 2
 
     // 识别颜色（由于视频显示时镜像了，识别时需要镜像x坐标）
+    setIsCapturing(true)
     const { colors, confidence } = recognizeFaceColors(video, faceWidth, faceHeight, offsetX, offsetY, true)
 
     // 更新输入状态
@@ -167,6 +175,7 @@ export default function CameraInputModal({ isOpen, onClose, onComplete }: Camera
           <div className="camera-net-layout">
             {/* 左侧：展开图 */}
             <div className="cube-net-section">
+              <OperationInstructions />
               <CubeNetInput
                 inputState={inputState}
                 activeFace={activeFace}
@@ -202,12 +211,12 @@ export default function CameraInputModal({ isOpen, onClose, onComplete }: Camera
                     </div>
                   </div>
                   <div className="camera-controls">
+                    <div className="camera-hint">
+                      💡 提示：再次点击中心块可识别颜色，或点击下方按钮
+                    </div>
                     <button
                       className="btn btn-primary"
-                      onClick={() => {
-                        setIsCapturing(true)
-                        setTimeout(handleCapture, 100) // 短暂延迟以确保画面稳定
-                      }}
+                      onClick={handleCapture}
                       disabled={isCapturing}
                     >
                       {isCapturing ? '识别中...' : '识别颜色'}
