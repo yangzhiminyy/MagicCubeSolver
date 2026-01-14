@@ -6,7 +6,7 @@
 import { useState, useRef } from 'react'
 import { Face, FaceColor } from '../utils/cubeTypes'
 import { CubeInputState, FaceInputState } from '../utils/cubeInputConverter'
-import ColorCarouselPicker from './ColorCarouselPicker'
+import SimpleColorPicker from './SimpleColorPicker'
 import './CubeNetInput.css'
 
 interface CubeNetInputProps {
@@ -87,64 +87,31 @@ function FaceNet({ face, faceState, isActive, onActivate, onLongPress, isMenuOpe
   const cellRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
   const handleCellClick = (row: number, col: number, e: React.MouseEvent) => {
-    console.log('[FaceNet] handleCellClick:', { face, row, col, isCenter: isCenterCell(row, col), isMenuOpenForCell })
-    
-    // 无论什么情况，都先阻止事件冒泡，避免触发 overlay 的关闭
     e.stopPropagation()
-    e.preventDefault() // 也阻止默认行为
+    e.preventDefault()
     
     if (isCenterCell(row, col)) {
       // 中心块：激活该面
-      console.log('[FaceNet] 中心块点击，激活该面')
       onActivate()
     } else {
-      // 如果菜单已经打开且是针对这个色块，只切换颜色
+      // 边缘块：打开颜色选择菜单
+      // 如果菜单已经打开且是针对这个色块，则关闭菜单
       if (isMenuOpenForCell && isMenuOpenForCell.face === face && 
           isMenuOpenForCell.row === row && isMenuOpenForCell.col === col) {
-        console.log('[FaceNet] 菜单已打开且针对同一色块，切换颜色')
-        // 直接触发切换，不需要重新计算位置
-        const cellKey = `${row}-${col}`
-        const cellElement = cellRefs.current.get(cellKey)
-        if (!cellElement) {
-          console.log('[FaceNet] 无法找到 cellElement')
-          return
-        }
-
-        const rect = cellElement.getBoundingClientRect()
-        const menuWidth = 280
-        const menuHeight = 80
-        const spaceRight = window.innerWidth - rect.right
-        const spaceLeft = rect.left
-        
-        let x: number
-        if (spaceRight >= menuWidth + 10) {
-          x = rect.right + 10
-        } else if (spaceLeft >= menuWidth + 10) {
-          x = rect.left - menuWidth - 10
-        } else {
-          x = (window.innerWidth - menuWidth) / 2
-        }
-
-        const y = Math.max(10, Math.min(rect.top - menuHeight / 2, window.innerHeight - menuHeight - 10))
-
-        console.log('[FaceNet] 调用 onLongPress 切换颜色，位置:', { x, y })
-        onLongPress(row, col, { x, y })
+        onLongPress(row, col, { x: 0, y: 0 })
         return
       }
 
-      // 否则正常打开菜单
-      console.log('[FaceNet] 打开新菜单')
+      // 计算菜单位置
       const cellKey = `${row}-${col}`
       const cellElement = cellRefs.current.get(cellKey)
       if (!cellElement) {
-        console.log('[FaceNet] 无法找到 cellElement')
         return
       }
 
       const rect = cellElement.getBoundingClientRect()
-      // 计算位置：在色块右侧显示，如果右侧空间不够则在左侧
-      const menuWidth = 280
-      const menuHeight = 80
+      const menuWidth = 200
+      const menuHeight = 140
       const spaceRight = window.innerWidth - rect.right
       const spaceLeft = rect.left
       
@@ -159,12 +126,9 @@ function FaceNet({ face, faceState, isActive, onActivate, onLongPress, isMenuOpe
 
       const y = Math.max(10, Math.min(rect.top - menuHeight / 2, window.innerHeight - menuHeight - 10))
 
-      console.log('[FaceNet] 调用 onLongPress 打开菜单，位置:', { x, y })
       onLongPress(row, col, { x, y })
     }
   }
-
-  // 长按逻辑已移除，现在单击就打开菜单（在 handleCellClick 中处理）
 
 
   return (
@@ -228,41 +192,23 @@ export default function CubeNetInput({
   onColorChange,
 }: CubeNetInputProps) {
   const completedCount = Object.values(inputState.faces).filter(f => f.isComplete).length
-  const [globalLongPressCell, setGlobalLongPressCell] = useState<{ face: Face, row: number, col: number, position: { x: number, y: number } } | null>(null)
-  const isMenuOpenRef = useRef(false) // 全局菜单状态
+  const [menuCell, setMenuCell] = useState<{ face: Face, row: number, col: number, position: { x: number, y: number } } | null>(null)
 
-  const [menuSwitchTrigger, setMenuSwitchTrigger] = useState(0) // 用于触发菜单内的颜色切换
-
-  const handleLongPress = (face: Face, row: number, col: number, position: { x: number, y: number }) => {
-    console.log('[CubeNetInput] handleLongPress:', { face, row, col, position, globalLongPressCell })
-    
-    // 如果菜单已经打开且是针对同一个色块，则触发颜色切换而不是重新打开菜单
-    if (globalLongPressCell && 
-        globalLongPressCell.face === face && 
-        globalLongPressCell.row === row && 
-        globalLongPressCell.col === col) {
-      // 菜单已经打开，触发颜色切换
-      console.log('[CubeNetInput] 菜单已打开且针对同一色块，触发颜色切换')
-      setMenuSwitchTrigger(prev => {
-        const newValue = prev + 1
-        console.log('[CubeNetInput] 更新 switchTrigger:', prev, '->', newValue)
-        return newValue
-      })
+  const handleMenuOpen = (face: Face, row: number, col: number, position: { x: number, y: number }) => {
+    // 如果菜单已经打开且是针对同一个色块，则关闭菜单
+    if (menuCell && 
+        menuCell.face === face && 
+        menuCell.row === row && 
+        menuCell.col === col) {
+      setMenuCell(null)
       return
     }
     // 否则打开新菜单
-    console.log('[CubeNetInput] 打开新菜单')
-    setGlobalLongPressCell({ face, row, col, position })
-    isMenuOpenRef.current = true
-    setMenuSwitchTrigger(0) // 重置切换触发器
-    console.log('[CubeNetInput] 菜单状态已更新，globalLongPressCell:', { face, row, col, position })
+    setMenuCell({ face, row, col, position })
   }
 
   const handleMenuClose = () => {
-    console.log('[CubeNetInput] handleMenuClose 被调用')
-    setGlobalLongPressCell(null)
-    isMenuOpenRef.current = false
-    console.log('[CubeNetInput] 菜单已关闭')
+    setMenuCell(null)
   }
 
   return (
@@ -274,8 +220,8 @@ export default function CubeNetInput({
           faceState={inputState.faces.U}
           isActive={activeFace === 'U'}
           onActivate={() => onFaceActivate('U')}
-          onLongPress={(row, col, position) => handleLongPress('U', row, col, position)}
-          isMenuOpenForCell={globalLongPressCell}
+          onLongPress={(row, col, position) => handleMenuOpen('U', row, col, position)}
+          isMenuOpenForCell={menuCell}
         />
 
         {/* L, F, R, B 面 - 中间一行 */}
@@ -284,32 +230,32 @@ export default function CubeNetInput({
           faceState={inputState.faces.L}
           isActive={activeFace === 'L'}
           onActivate={() => onFaceActivate('L')}
-          onLongPress={(row, col, position) => handleLongPress('L', row, col, position)}
-          isMenuOpenForCell={globalLongPressCell}
+          onLongPress={(row, col, position) => handleMenuOpen('L', row, col, position)}
+          isMenuOpenForCell={menuCell}
         />
         <FaceNet
           face="F"
           faceState={inputState.faces.F}
           isActive={activeFace === 'F'}
           onActivate={() => onFaceActivate('F')}
-          onLongPress={(row, col, position) => handleLongPress('F', row, col, position)}
-          isMenuOpenForCell={globalLongPressCell}
+          onLongPress={(row, col, position) => handleMenuOpen('F', row, col, position)}
+          isMenuOpenForCell={menuCell}
         />
         <FaceNet
           face="R"
           faceState={inputState.faces.R}
           isActive={activeFace === 'R'}
           onActivate={() => onFaceActivate('R')}
-          onLongPress={(row, col, position) => handleLongPress('R', row, col, position)}
-          isMenuOpenForCell={globalLongPressCell}
+          onLongPress={(row, col, position) => handleMenuOpen('R', row, col, position)}
+          isMenuOpenForCell={menuCell}
         />
         <FaceNet
           face="B"
           faceState={inputState.faces.B}
           isActive={activeFace === 'B'}
           onActivate={() => onFaceActivate('B')}
-          onLongPress={(row, col, position) => handleLongPress('B', row, col, position)}
-          isMenuOpenForCell={globalLongPressCell}
+          onLongPress={(row, col, position) => handleMenuOpen('B', row, col, position)}
+          isMenuOpenForCell={menuCell}
         />
 
         {/* D 面 - 下方 */}
@@ -318,21 +264,23 @@ export default function CubeNetInput({
           faceState={inputState.faces.D}
           isActive={activeFace === 'D'}
           onActivate={() => onFaceActivate('D')}
-          onLongPress={(row, col, position) => handleLongPress('D', row, col, position)}
-          isMenuOpenForCell={globalLongPressCell}
+          onLongPress={(row, col, position) => handleMenuOpen('D', row, col, position)}
+          isMenuOpenForCell={menuCell}
         />
       </div>
       <div className="cube-net-progress">
         进度: {completedCount} / 6 已完成
       </div>
-      {globalLongPressCell && (
-        <ColorCarouselPicker
+      {menuCell && (
+        <SimpleColorPicker
           isVisible={true}
-          position={globalLongPressCell.position}
-          currentColor={inputState.faces[globalLongPressCell.face].colors[globalLongPressCell.row][globalLongPressCell.col]}
-          onSelect={(color) => onColorChange(globalLongPressCell.face, globalLongPressCell.row, globalLongPressCell.col, color)}
+          position={menuCell.position}
+          currentFace={menuCell.face}
+          onSelect={(color) => {
+            onColorChange(menuCell.face, menuCell.row, menuCell.col, color)
+            handleMenuClose() // 选择后自动关闭
+          }}
           onClose={handleMenuClose}
-          switchTrigger={menuSwitchTrigger} // 传递切换触发器
         />
       )}
     </div>
