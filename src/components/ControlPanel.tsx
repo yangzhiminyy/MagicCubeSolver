@@ -89,8 +89,8 @@ export default function ControlPanel({
           >
             <option value="reverse-moves">反向移动（最快，需打乱序列）</option>
             <option value="kociemba">Kociemba（快速，两阶段算法）</option>
-            <option value="thistlethwaite">Thistlethwaite（四阶段算法）</option>
-            <option value="ida-star">IDA*（较慢，最优解）</option>
+            <option value="thistlethwaite">Thistlethwaite（四阶段算法）🚧 开发中</option>
+            <option value="ida-star">IDA*（较慢，最优解）🚧 开发中</option>
           </select>
         </div>
       </div>

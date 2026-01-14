@@ -55,8 +55,8 @@ The application supports multiple solving algorithms, selectable via the UI:
 **Status Summary:**
 - ✅ **Reverse Moves**: Fully functional
 - ✅ **Kociemba**: Fully functional (using kociemba-wasm)
-- ⚠️ **IDA***: Functional but slow for complex states
-- ⚠️ **Thistlethwaite**: Functional but very slow, may timeout
+- 🚧 **IDA***: Under development (may have issues)
+- 🚧 **Thistlethwaite**: Under development (may have issues)
 
 ### 1. Reverse Moves (Default)
 - **Speed**: ⚡⚡⚡⚡⚡ (Fastest)
@@ -72,18 +72,23 @@ The application supports multiple solving algorithms, selectable via the UI:
 - **Status**: ✅ Fully functional and tested
 
 ### 3. IDA* (Iterative Deepening A*)
+- **Status**: 🚧 Under development
 - **Speed**: ⚡⚡ (Slow)
 - **Requirements**: None
 - **Description**: Optimal search algorithm that finds the shortest solution path. Uses a simple heuristic function.
 - **Use Case**: When optimal solutions are required, but may be slow for complex states
-- **Limitations**: Can be very slow for states requiring many moves
+- **Limitations**: 
+  - Currently under development, may have issues
+  - Can be very slow for states requiring many moves
 
 ### 4. Thistlethwaite Algorithm
+- **Status**: 🚧 Under development
 - **Speed**: ⚡ (Very Slow)
 - **Requirements**: None
 - **Description**: Four-stage algorithm that progressively restricts the cube to subgroups. Implemented with asynchronous BFS search.
 - **Use Case**: Educational purposes, understanding group theory approach
 - **Limitations**: 
+  - Currently under development, may have issues
   - Very slow for complex states
   - May timeout on stage 2->3 transition
   - Simplified implementation (not full group theory)
@@ -262,8 +267,8 @@ MIT
 **状态总结：**
 - ✅ **反向移动**：完全功能正常
 - ✅ **Kociemba**：完全功能正常（使用 kociemba-wasm）
-- ⚠️ **IDA***：功能正常但复杂状态较慢
-- ⚠️ **Thistlethwaite**：功能正常但非常慢，可能超时
+- 🚧 **IDA***：开发中（可能存在问题）
+- 🚧 **Thistlethwaite**：开发中（可能存在问题）
 
 ### 1. 反向移动（默认）
 - **速度**：⚡⚡⚡⚡⚡（最快）
@@ -279,18 +284,23 @@ MIT
 - **状态**：✅ 完全功能正常并已测试
 
 ### 3. IDA*（迭代加深A*）
+- **状态**：🚧 开发中
 - **速度**：⚡⚡（较慢）
 - **要求**：无
 - **描述**：最优搜索算法，找到最短解路径。使用简单的启发式函数。
 - **使用场景**：需要最优解时，但对于复杂状态可能很慢
-- **限制**：对于需要很多步的状态可能非常慢
+- **限制**：
+  - 当前处于开发中，可能存在问题
+  - 对于需要很多步的状态可能非常慢
 
 ### 4. Thistlethwaite 算法
+- **状态**：🚧 开发中
 - **速度**：⚡（非常慢）
 - **要求**：无
 - **描述**：四阶段算法，逐步将魔方限制到子群。使用异步BFS搜索实现。
 - **使用场景**：教育目的，理解群论方法
 - **限制**：
+  - 当前处于开发中，可能存在问题
   - 对于复杂状态非常慢
   - 可能在阶段 2->3 转换时超时
   - 简化实现（非完整群论）
