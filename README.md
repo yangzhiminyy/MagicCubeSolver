@@ -42,6 +42,7 @@ The application is built with a component-based architecture:
 - **`cubieBasedCubeLogic.ts`**: Cubie-based cube rotation logic and state manipulation
 - **`cubeAnimation.ts`**: Animation system for smooth 3D rotations
 - **`cubeSolver.ts`**: Solver dispatcher supporting multiple algorithms
+- **`idaStarHelpers.ts`**: IDA* state keys, fast equality, Manhattan sums
 - **`cubeConverter.ts`**: Conversion between internal state and external formats (cubestring)
 - **`thistlethwaite.ts`**: Thistlethwaite four-stage algorithm implementation
 - **`cameraColorRecognition.ts`**: Camera-based color recognition utilities
@@ -77,6 +78,9 @@ The application supports multiple solving algorithms, selectable via the UI:
 - **Requirements**: None
 - **Description**: Optimal search algorithm that finds the shortest solution path. Uses a simple heuristic function.
 - **Use Case**: When optimal solutions are required, but may be slow for complex states
+- **Implementation notes**: See [`doc/IDA_STAR_SOLVER.md`](./doc/IDA_STAR_SOLVER.md) for the current algorithm flow, pruning, and known limitations. Broader comparison (Columbia PDB/Kociemba notes, Jai0212, optimization ideas): [`doc/RUBIK_SOLVER_COMPARISON.md`](./doc/RUBIK_SOLVER_COMPARISON.md).
+- **Debug logging** (when solve hangs or takes too long): In the browser **Console**, run `localStorage.setItem('DEBUG_IDA_STAR', 'true')`, **reload the page**, then run IDA* again. Console will show `[IDA*]` messages. To disable: `localStorage.removeItem('DEBUG_IDA_STAR')` and reload. Details: [§12.1 in `doc/IDA_STAR_SOLVER.md`](./doc/IDA_STAR_SOLVER.md).
+- **Wall-clock limit**: IDA* stops after **5 minutes** by default (returns no solution and logs a warning). Unlimited: `localStorage.setItem('IDA_STAR_MAX_WALL_MS', '0')`. Prefer **Kociemba** for hard scrambles.
 - **Limitations**: 
   - Currently under development, may have issues
   - Can be very slow for states requiring many moves
@@ -161,6 +165,15 @@ npm run dev
 npm run build
 ```
 
+### Troubleshooting (Vite dev)
+
+If the console shows `GET http://127.0.0.1:5173/ net::ERR_CONNECTION_REFUSED` and `ping` / `waitForSuccessfulPing` from `client`:
+
+- This comes from **Vite’s HMR client**, not your app code. It means the **dev server is not listening** (e.g. `npm run dev` was stopped).
+- **Fix:** run `npm run dev` again and open the URL printed in the terminal; close stale tabs that still point at the old dev server.
+
+See [`doc/VITE_DEV_TROUBLESHOOTING.md`](./doc/VITE_DEV_TROUBLESHOOTING.md) for details.
+
 ### Usage
 
 1. **Rotate View**: Left mouse button drag
@@ -195,6 +208,7 @@ src/
   │   ├── cubieBasedCubeLogic.ts # Cubie-based cube rotation logic
   │   ├── cubeAnimation.ts    # Animation system
   │   ├── cubeSolver.ts       # Solver dispatcher
+  │   ├── idaStarHelpers.ts   # IDA* helpers (state key, Manhattan)
   │   ├── cubeConverter.ts    # State format conversion
   │   ├── thistlethwaite.ts    # Thistlethwaite algorithm
   │   ├── cameraColorRecognition.ts # Camera color recognition
@@ -257,6 +271,7 @@ MIT
 - **`cubeLogic.ts`**：核心魔方旋转逻辑和状态操作
 - **`cubeAnimation.ts`**：平滑3D旋转的动画系统
 - **`cubeSolver.ts`**：支持多种算法的求解器调度器
+- **`idaStarHelpers.ts`**：IDA* 状态键、快速判等、Manhattan 启发辅助
 - **`cubeConverter.ts`**：内部状态和外部格式（cubestring）之间的转换
 - **`thistlethwaite.ts`**：Thistlethwaite 四阶段算法实现
 
@@ -288,6 +303,9 @@ MIT
 - **速度**：⚡⚡（较慢）
 - **要求**：无
 - **描述**：最优搜索算法，找到最短解路径。使用简单的启发式函数。
+- **实现说明**：详见 [`doc/IDA_STAR_SOLVER.md`](./doc/IDA_STAR_SOLVER.md)（当前逻辑、剪枝与已知局限）。与外部资料（Columbia IDA\*+PDB 报告、[Jai0212](https://github.com/Jai0212/Rubiks-Cube-Solver-Using-IDA-Star) 等）的综合对比与优化方向见 [`doc/RUBIK_SOLVER_COMPARISON.md`](./doc/RUBIK_SOLVER_COMPARISON.md)。
+- **调试日志**（求解很久无结果或需排查时）：浏览器打开**开发者工具 → 控制台**，执行 `localStorage.setItem('DEBUG_IDA_STAR', 'true')` 后**刷新页面**，再选 IDA* 求解，控制台会输出带 `[IDA*]` 的日志；关闭：`localStorage.removeItem('DEBUG_IDA_STAR')` 并刷新。步骤说明见 [`doc/IDA_STAR_SOLVER.md`](./doc/IDA_STAR_SOLVER.md) 中的 **§12.1 调试日志**。
+- **默认 5 分钟总时长上限**：超时自动放弃（控制台有 `[IDA*] 已达总时长上限` 提示）。不限制：`localStorage.setItem('IDA_STAR_MAX_WALL_MS', '0')`。复杂打乱请优先用 **Kociemba**。
 - **使用场景**：需要最优解时，但对于复杂状态可能很慢
 - **限制**：
   - 当前处于开发中，可能存在问题
@@ -373,6 +391,15 @@ npm run dev
 npm run build
 ```
 
+### 常见问题（Vite 开发）
+
+若控制台出现 `GET http://127.0.0.1:5173/ net::ERR_CONNECTION_REFUSED` 以及 `client` 里的 `ping`：
+
+- 这是 **Vite 热更新客户端** 在检测开发服务，**不是业务代码报错**；表示 **5173 端口上没有开发服务**（例如已关掉 `npm run dev`）。
+- **处理：** 重新执行 `npm run dev`，用终端里显示的地址打开页面；关掉仍指向旧地址的标签页。
+
+详见 [`doc/VITE_DEV_TROUBLESHOOTING.md`](./doc/VITE_DEV_TROUBLESHOOTING.md)。
+
 ### 使用方法
 
 1. **旋转视角**：鼠标左键拖拽
@@ -407,6 +434,7 @@ src/
   │   ├── cubieBasedCubeLogic.ts # 基于Cubie的魔方旋转逻辑
   │   ├── cubeAnimation.ts    # 动画系统
   │   ├── cubeSolver.ts       # 求解器调度器
+  │   ├── idaStarHelpers.ts   # IDA* 辅助（状态键、Manhattan）
   │   ├── cubeConverter.ts    # 状态格式转换
   │   ├── thistlethwaite.ts   # Thistlethwaite算法
   │   ├── cameraColorRecognition.ts # 摄像头颜色识别
