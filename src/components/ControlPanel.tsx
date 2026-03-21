@@ -1,5 +1,7 @@
+import { useTranslation } from 'react-i18next'
 import { Move } from '../utils/cubeTypes'
 import { SolverAlgorithm } from '../utils/cubeSolver'
+import LanguageSwitcher from './LanguageSwitcher'
 import './ControlPanel.css'
 
 interface ControlPanelProps {
@@ -40,6 +42,7 @@ export default function ControlPanel({
   showCoordinates,
   onToggleCoordinate,
 }: ControlPanelProps) {
+  const { t } = useTranslation()
   const moves: Move[] = [
     'R', "R'", 'R2',
     'L', "L'", 'L2',
@@ -51,35 +54,36 @@ export default function ControlPanel({
 
   return (
     <div className="control-panel">
+      <LanguageSwitcher />
       <div className="panel-section">
-        <h2>魔方控制</h2>
+        <h2>{t('control.title')}</h2>
         <div className="button-group">
           <button 
             className="btn btn-primary" 
             onClick={onScramble}
             disabled={isAnimating}
           >
-            打乱
+            {t('control.scramble')}
           </button>
           <button 
             className="btn btn-primary" 
             onClick={onSolve}
             disabled={isAnimating}
           >
-            求解
+            {t('control.solve')}
           </button>
           <button 
             className="btn btn-secondary" 
             onClick={onCameraInput}
             disabled={isAnimating}
-            title="使用摄像头录入魔方状态"
+            title={t('control.cameraTitle')}
           >
-            📷 摄像头录入
+            📷 {t('control.cameraInput')}
           </button>
         </div>
         
         <div className="algorithm-selector">
-          <label htmlFor="algorithm-select">求解算法：</label>
+          <label htmlFor="algorithm-select">{t('control.algorithmLabel')}</label>
           <select
             id="algorithm-select"
             value={selectedAlgorithm}
@@ -87,16 +91,16 @@ export default function ControlPanel({
             disabled={isAnimating}
             className="algorithm-select"
           >
-            <option value="reverse-moves">反向移动（最快，需打乱序列）</option>
-            <option value="kociemba">Kociemba（快速，两阶段算法）</option>
-            <option value="thistlethwaite">Thistlethwaite（四阶段算法）🚧 开发中</option>
-            <option value="ida-star">IDA*（较慢，最优解）🚧 开发中</option>
+            <option value="reverse-moves">{t('control.algoReverse')}</option>
+            <option value="kociemba">{t('control.algoKociemba')}</option>
+            <option value="thistlethwaite">{t('control.algoThistle')}</option>
+            <option value="ida-star">{t('control.algoIda')}</option>
           </select>
         </div>
       </div>
 
       <div className="panel-section">
-        <h3>手动操作</h3>
+        <h3>{t('control.manualOps')}</h3>
         <div className="move-buttons">
           {moves.map((move) => (
             <button
@@ -113,10 +117,10 @@ export default function ControlPanel({
 
       {solution.length > 0 && (
         <div className="panel-section">
-          <h3>求解步骤</h3>
+          <h3>{t('control.solutionSteps')}</h3>
           <div className="solution-info">
-            <p>总步数: {solution.length}</p>
-            <p>当前步: {currentStep} / {solution.length}</p>
+            <p>{t('control.totalMoves', { count: solution.length })}</p>
+            <p>{t('control.currentStep', { current: currentStep, total: solution.length })}</p>
           </div>
           <div className="button-group">
             <button
@@ -124,14 +128,14 @@ export default function ControlPanel({
               onClick={onStepBackward}
               disabled={isAnimating || currentStep === 0}
             >
-              上一步
+              {t('control.prevStep')}
             </button>
             <button
               className="btn btn-secondary"
               onClick={onStepForward}
               disabled={isAnimating || currentStep >= solution.length}
             >
-              下一步
+              {t('control.nextStep')}
             </button>
           </div>
           <div className="solution-steps">
@@ -150,7 +154,7 @@ export default function ControlPanel({
       )}
 
       <div className="panel-section">
-        <h3>坐标显示</h3>
+        <h3>{t('control.coords')}</h3>
         <div className="coordinate-controls">
           <label className="coordinate-switch">
             <input
@@ -158,7 +162,7 @@ export default function ControlPanel({
               checked={showCoordinates.U}
               onChange={() => onToggleCoordinate('U')}
             />
-            <span>U面（上）</span>
+            <span>{t('control.coordU')}</span>
           </label>
           <label className="coordinate-switch">
             <input
@@ -166,7 +170,7 @@ export default function ControlPanel({
               checked={showCoordinates.D}
               onChange={() => onToggleCoordinate('D')}
             />
-            <span>D面（下）</span>
+            <span>{t('control.coordD')}</span>
           </label>
           <label className="coordinate-switch">
             <input
@@ -174,7 +178,7 @@ export default function ControlPanel({
               checked={showCoordinates.F}
               onChange={() => onToggleCoordinate('F')}
             />
-            <span>F面（前）</span>
+            <span>{t('control.coordF')}</span>
           </label>
           <label className="coordinate-switch">
             <input
@@ -182,7 +186,7 @@ export default function ControlPanel({
               checked={showCoordinates.B}
               onChange={() => onToggleCoordinate('B')}
             />
-            <span>B面（后）</span>
+            <span>{t('control.coordB')}</span>
           </label>
           <label className="coordinate-switch">
             <input
@@ -190,7 +194,7 @@ export default function ControlPanel({
               checked={showCoordinates.L}
               onChange={() => onToggleCoordinate('L')}
             />
-            <span>L面（左）</span>
+            <span>{t('control.coordL')}</span>
           </label>
           <label className="coordinate-switch">
             <input
@@ -198,17 +202,17 @@ export default function ControlPanel({
               checked={showCoordinates.R}
               onChange={() => onToggleCoordinate('R')}
             />
-            <span>R面（右）</span>
+            <span>{t('control.coordR')}</span>
           </label>
         </div>
       </div>
 
       <div className="panel-section">
-        <h3>操作提示</h3>
+        <h3>{t('control.tips')}</h3>
         <ul className="tips">
-          <li>鼠标左键拖拽：旋转视角</li>
-          <li>鼠标滚轮：缩放</li>
-          <li>点击按钮：旋转魔方</li>
+          <li>{t('control.tipDrag')}</li>
+          <li>{t('control.tipZoom')}</li>
+          <li>{t('control.tipButtons')}</li>
         </ul>
       </div>
     </div>

@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Face, FaceColor } from '../utils/cubeTypes'
 import { CubeInputState, FaceInputState } from '../utils/cubeInputConverter'
 import SimpleColorPicker from './SimpleColorPicker'
@@ -39,25 +40,6 @@ const getFaceColorHex = (face: Face): string => {
   return colorMap[face]
 }
 
-const FACE_LABELS: Record<Face, string> = {
-  U: '上 (U)',
-  D: '下 (D)',
-  F: '前 (F)',
-  B: '后 (B)',
-  L: '左 (L)',
-  R: '右 (R)',
-}
-
-const COLOR_NAMES: Record<FaceColor, string> = {
-  white: '白',
-  yellow: '黄',
-  red: '红',
-  orange: '橙',
-  green: '绿',
-  blue: '蓝',
-  black: '未',
-}
-
 const COLOR_HEX: Record<FaceColor, string> = {
   white: '#FFFFFF',
   yellow: '#FFEB3B',
@@ -84,6 +66,7 @@ interface FaceNetProps {
 }
 
 function FaceNet({ face, faceState, isActive, onActivate, onLongPress, isMenuOpenForCell }: FaceNetProps) {
+  const { t } = useTranslation()
   const cellRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
   const handleCellClick = (row: number, col: number, e: React.MouseEvent) => {
@@ -133,7 +116,7 @@ function FaceNet({ face, faceState, isActive, onActivate, onLongPress, isMenuOpe
 
   return (
     <div className={`face-net ${isActive ? 'active' : ''}`}>
-      <div className="face-label">{FACE_LABELS[face]}</div>
+      <div className="face-label">{t(`faces.${face}`)}</div>
       <div className="face-grid">
         {faceState.colors.map((row, rowIdx) => (
           <div key={rowIdx} className="face-row">
@@ -154,7 +137,11 @@ function FaceNet({ face, faceState, isActive, onActivate, onLongPress, isMenuOpe
                   className={`face-cell ${isCenter ? 'center' : 'edge'} ${isCenter && isActive ? 'center-active' : ''}`}
                   style={{ backgroundColor: COLOR_HEX[displayColor] }}
                   onClick={(e) => handleCellClick(rowIdx, colIdx, e)}
-                  title={isCenter ? `点击激活${FACE_LABELS[face]}` : `${COLOR_NAMES[color]} (单击选择颜色)`}
+                  title={
+                    isCenter
+                      ? t('cubeNet.titleActivate', { face: t(`faces.${face}`) })
+                      : t('cubeNet.titlePickColor', { color: t(`colors.short.${color}`) })
+                  }
                 >
                   {isCenter ? (
                     <span 
@@ -167,7 +154,7 @@ function FaceNet({ face, faceState, isActive, onActivate, onLongPress, isMenuOpe
                       📷
                     </span>
                   ) : (
-                    <span className="cell-label">{COLOR_NAMES[displayColor]}</span>
+                    <span className="cell-label">{t(`colors.short.${displayColor}`)}</span>
                   )}
                   {!isCenter && confidence < 0.5 && (
                     <span className="confidence-warning">!</span>
@@ -191,6 +178,7 @@ export default function CubeNetInput({
   onFaceActivate,
   onColorChange,
 }: CubeNetInputProps) {
+  const { t } = useTranslation()
   const completedCount = Object.values(inputState.faces).filter(f => f.isComplete).length
   const [menuCell, setMenuCell] = useState<{ face: Face, row: number, col: number, position: { x: number, y: number } } | null>(null)
 
@@ -269,7 +257,7 @@ export default function CubeNetInput({
         />
       </div>
       <div className="cube-net-progress">
-        进度: {completedCount} / 6 已完成
+        {t('cubeNet.progress', { done: completedCount })}
       </div>
       {menuCell && (
         <SimpleColorPicker

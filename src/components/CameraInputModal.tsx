@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Face, FaceColor } from '../utils/cubeTypes'
 import { CubeInputState, createEmptyInputState, inputStateToCubeState, isInputStateComplete, isFaceComplete } from '../utils/cubeInputConverter'
 import { requestCamera, stopCamera, recognizeFaceColors } from '../utils/cameraColorRecognition'
@@ -17,16 +18,8 @@ interface CameraInputModalProps {
   onComplete: (cubeState: ReturnType<typeof inputStateToCubeState>) => void
 }
 
-const FACE_LABELS: Record<Face, string> = {
-  U: '上 (U)',
-  D: '下 (D)',
-  F: '前 (F)',
-  B: '后 (B)',
-  L: '左 (L)',
-  R: '右 (R)',
-}
-
 export default function CameraInputModal({ isOpen, onClose, onComplete }: CameraInputModalProps) {
+  const { t } = useTranslation()
   const [inputState, setInputState] = useState<CubeInputState>(createEmptyInputState())
   const [activeFace, setActiveFace] = useState<Face | null>(null)
   const [stream, setStream] = useState<MediaStream | null>(null)
@@ -46,7 +39,7 @@ export default function CameraInputModal({ isOpen, onClose, onComplete }: Camera
         })
         .catch(error => {
           console.error('无法访问摄像头:', error)
-          alert('无法访问摄像头，请检查权限设置')
+          alert(t('camera.cameraDenied'))
         })
     }
 
@@ -154,7 +147,7 @@ export default function CameraInputModal({ isOpen, onClose, onComplete }: Camera
       onComplete(cubeState)
       onClose()
     } else {
-      alert('请完成所有面的录入')
+      alert(t('camera.completeAllFaces'))
     }
   }
 
@@ -167,7 +160,7 @@ export default function CameraInputModal({ isOpen, onClose, onComplete }: Camera
     <div className="camera-modal-overlay" onClick={onClose}>
       <div className="camera-modal" onClick={e => e.stopPropagation()}>
         <div className="camera-modal-header">
-          <h2>摄像头录入魔方状态</h2>
+          <h2>{t('camera.modalTitle')}</h2>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
 
@@ -188,7 +181,7 @@ export default function CameraInputModal({ isOpen, onClose, onComplete }: Camera
             <div className="camera-section">
               {activeFace ? (
                 <>
-                  <h3>当前录入: {FACE_LABELS[activeFace]}</h3>
+                  <h3>{t('camera.currentFace', { face: t(`faces.${activeFace}`) })}</h3>
                   <div className="video-container">
                     <video
                       ref={videoRef}
@@ -212,20 +205,20 @@ export default function CameraInputModal({ isOpen, onClose, onComplete }: Camera
                   </div>
                   <div className="camera-controls">
                     <div className="camera-hint">
-                      💡 提示：再次点击中心块可识别颜色，或点击下方按钮
+                      {t('camera.hint')}
                     </div>
                     <button
                       className="btn btn-primary"
                       onClick={handleCapture}
                       disabled={isCapturing}
                     >
-                      {isCapturing ? '识别中...' : '识别颜色'}
+                      {isCapturing ? t('camera.recognizing') : t('camera.captureColor')}
                     </button>
                   </div>
                 </>
               ) : (
                 <div className="camera-placeholder">
-                  <p>👆 点击任意面的中心块开始录入</p>
+                  <p>{t('camera.placeholder')}</p>
                 </div>
               )}
             </div>
@@ -234,18 +227,18 @@ export default function CameraInputModal({ isOpen, onClose, onComplete }: Camera
 
         <div className="camera-modal-footer">
           <div className="progress-info">
-            进度: {completedCount} / 6 已完成
+            {t('camera.progress', { done: completedCount })}
           </div>
           <div className="footer-buttons">
             <button className="btn btn-secondary" onClick={onClose}>
-              取消
+              {t('camera.cancel')}
             </button>
             <button
               className="btn btn-primary"
               onClick={handleFinish}
               disabled={!allComplete}
             >
-              完成录入
+              {t('camera.finish')}
             </button>
           </div>
         </div>

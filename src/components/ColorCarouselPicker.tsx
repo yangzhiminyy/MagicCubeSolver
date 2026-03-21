@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { FaceColor } from '../utils/cubeTypes'
 import './ColorCarouselPicker.css'
 
@@ -17,16 +18,6 @@ interface ColorCarouselPickerProps {
 }
 
 const COLORS: FaceColor[] = ['white', 'yellow', 'red', 'orange', 'green', 'blue']
-
-const COLOR_NAMES: Record<FaceColor, string> = {
-  white: '白',
-  yellow: '黄',
-  red: '红',
-  orange: '橙',
-  green: '绿',
-  blue: '蓝',
-  black: '未',
-}
 
 const COLOR_HEX: Record<FaceColor, string> = {
   white: '#FFFFFF',
@@ -46,6 +37,7 @@ export default function ColorCarouselPicker({
   onClose,
   switchTrigger,
 }: ColorCarouselPickerProps) {
+  const { t } = useTranslation()
   const [scrollPosition, setScrollPosition] = useState(0)
   const [selectedColor, setSelectedColor] = useState<FaceColor>(currentColor)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -160,7 +152,7 @@ export default function ColorCarouselPicker({
                     handleColorItemClick(color)
                   }}
                 >
-                  <span className="color-name">{COLOR_NAMES[color]}</span>
+                  <span className="color-name">{t(`colors.short.${color}`)}</span>
                 </div>
               )
             })}
@@ -168,7 +160,7 @@ export default function ColorCarouselPicker({
         </div>
         <div className="color-carousel-center-indicator"></div>
         <div className="color-carousel-hint">
-          点击切换颜色 | 点击颜色项直接选择
+          {t('colorCarousel.hint')}
         </div>
       <button
         className="color-carousel-close-btn"
@@ -177,7 +169,7 @@ export default function ColorCarouselPicker({
           console.log('[ColorCarouselPicker] 关闭按钮被点击')
           onClose()
         }}
-        title="关闭"
+        title={t('colorCarousel.close')}
       >
         ×
       </button>

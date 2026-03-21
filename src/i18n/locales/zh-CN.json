@@ -1,0 +1,119 @@
+{
+  "language": {
+    "zh": "中文",
+    "en": "English"
+  },
+  "control": {
+    "title": "魔方控制",
+    "scramble": "打乱",
+    "solve": "求解",
+    "cameraInput": "摄像头录入",
+    "cameraTitle": "使用摄像头录入魔方状态",
+    "algorithmLabel": "求解算法：",
+    "algoReverse": "反向移动（最快，需打乱序列）",
+    "algoKociemba": "Kociemba（快速，两阶段算法）",
+    "algoThistle": "Thistlethwaite（四阶段算法）🚧 开发中",
+    "algoIda": "IDA*（较慢，最优解）🚧 开发中",
+    "manualOps": "手动操作",
+    "solutionSteps": "求解步骤",
+    "totalMoves": "总步数: {{count}}",
+    "currentStep": "当前步: {{current}} / {{total}}",
+    "prevStep": "上一步",
+    "nextStep": "下一步",
+    "coords": "坐标显示",
+    "coordU": "U面（上）",
+    "coordD": "D面（下）",
+    "coordF": "F面（前）",
+    "coordB": "B面（后）",
+    "coordL": "L面（左）",
+    "coordR": "R面（右）",
+    "tips": "操作提示",
+    "tipDrag": "鼠标左键拖拽：旋转视角",
+    "tipZoom": "鼠标滚轮：缩放",
+    "tipButtons": "点击按钮：旋转魔方"
+  },
+  "faces": {
+    "U": "上 (U)",
+    "D": "下 (D)",
+    "F": "前 (F)",
+    "B": "后 (B)",
+    "L": "左 (L)",
+    "R": "右 (R)"
+  },
+  "colors": {
+    "short": {
+      "white": "白",
+      "yellow": "黄",
+      "red": "红",
+      "orange": "橙",
+      "green": "绿",
+      "blue": "蓝",
+      "black": "未"
+    },
+    "full": {
+      "white": "白色",
+      "yellow": "黄色",
+      "red": "红色",
+      "orange": "橙色",
+      "green": "绿色",
+      "blue": "蓝色",
+      "black": "未设置"
+    }
+  },
+  "app": {
+    "solveEmptyFail": "求解失败：无法从当前状态创建求解模式。\n\n这可能是因为从 CubeState 到 KPattern 的转换尚未完全实现。",
+    "solveError": "求解功能暂不可用，请查看控制台获取错误详情。\n\n错误: {{message}}",
+    "cameraProcessError": "处理录入数据时出错: {{message}}"
+  },
+  "camera": {
+    "modalTitle": "摄像头录入魔方状态",
+    "currentFace": "当前录入: {{face}}",
+    "hint": "💡 提示：再次点击中心块可识别颜色，或点击下方按钮",
+    "recognizing": "识别中...",
+    "captureColor": "识别颜色",
+    "placeholder": "👆 点击任意面的中心块开始录入",
+    "progress": "进度: {{done}} / 6 已完成",
+    "cancel": "取消",
+    "finish": "完成录入",
+    "completeAllFaces": "请完成所有面的录入",
+    "cameraDenied": "无法访问摄像头，请检查权限设置"
+  },
+  "cubeNet": {
+    "progress": "进度: {{done}} / 6 已完成",
+    "titleActivate": "点击激活{{face}}",
+    "titlePickColor": "{{color}} (单击选择颜色)"
+  },
+  "faceInput": {
+    "pickColor": "选择颜色:",
+    "cancel": "取消",
+    "done": "已完成录入",
+    "confidenceTitle": "{{color}} (置信度: {{pct}}%)"
+  },
+  "instructions": {
+    "toggle": "操作说明",
+    "centerTitle": "📷 中心块（激活摄像头）",
+    "center1": "点击中心块：激活该面，打开摄像头预览",
+    "center2": "再次点击：识别当前面的颜色（自动识别）",
+    "center3": "点击其他面的中心块：切换到该面",
+    "edgeTitle": "🎨 边缘块（调整颜色）",
+    "edge1": "点击边缘块：打开颜色选择菜单（2x3网格）",
+    "edge2": "在菜单中点击颜色块：直接选择该颜色，菜单自动关闭",
+    "edge3": "菜单会根据当前面高亮对应颜色（如U面高亮白色）",
+    "doneTitle": "✅ 完成录入",
+    "done1": "每个面的边缘8个色块都填满后，该面显示 ✓ 标记",
+    "done2": "所有6个面都完成后，可以点击「完成录入」按钮",
+    "done3": "进度显示在展开图下方：X / 6 已完成",
+    "tipsTitle": "💡 提示",
+    "tip1": "摄像头预览会自动镜像，方便对齐",
+    "tip2": "九宫格网格帮助您对齐魔方面",
+    "tip3": "识别置信度低时会显示 ! 警告",
+    "tip4": "六个面以展开图形式显示，方便同时查看和录入"
+  },
+  "colorCarousel": {
+    "hint": "点击切换颜色 | 点击颜色项直接选择",
+    "close": "关闭"
+  },
+  "common": {
+    "close": "关闭"
+  }
+}

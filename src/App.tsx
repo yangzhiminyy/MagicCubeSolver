@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
 import RubiksCube from './components/RubiksCube'
@@ -12,6 +13,7 @@ import { AnimationState, getAnimationInfo } from './utils/cubeAnimation'
 import './App.css'
 
 function App() {
+  const { t } = useTranslation()
   const [cubieBasedState, setCubieBasedState] = useState<CubieBasedCubeState>(createSolvedCubieBasedCube())
   // 将CubieBasedCubeState转换为CubeState用于渲染
   const cubeState: CubeState = cubieBasedStateToFaceColors(cubieBasedState)
@@ -84,7 +86,7 @@ function App() {
       const solutionMoves = await solveCube(cubieBasedState, algorithm, movesToState.length > 0 ? movesToState : undefined)
       
       if (solutionMoves.length === 0) {
-        alert('求解失败：无法从当前状态创建求解模式。\n\n这可能是因为从 CubeState 到 KPattern 的转换尚未完全实现。')
+        alert(t('app.solveEmptyFail'))
         setSolution([])
         setCurrentStep(0)
       } else {
@@ -95,7 +97,11 @@ function App() {
       }
     } catch (error) {
       console.error('求解失败:', error)
-      alert('求解功能暂不可用，请查看控制台获取错误详情。\n\n错误: ' + (error instanceof Error ? error.message : String(error)))
+      alert(
+        t('app.solveError', {
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      )
       setSolution([])
       setCurrentStep(0)
     } finally {
@@ -205,7 +211,11 @@ function App() {
       setShowCameraModal(false)
     } catch (error) {
       console.error('摄像头录入完成处理失败:', error)
-      alert('处理录入数据时出错: ' + (error instanceof Error ? error.message : String(error)))
+      alert(
+        t('app.cameraProcessError', {
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      )
     }
   }
 

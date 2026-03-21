@@ -3,6 +3,7 @@
  * 简化的 2x3 网格颜色选择器
  */
 
+import { useTranslation } from 'react-i18next'
 import { Face, FaceColor } from '../utils/cubeTypes'
 import './SimpleColorPicker.css'
 
@@ -15,16 +16,6 @@ interface SimpleColorPickerProps {
 }
 
 const COLORS: FaceColor[] = ['white', 'yellow', 'red', 'orange', 'green', 'blue']
-
-const COLOR_NAMES: Record<FaceColor, string> = {
-  white: '白',
-  yellow: '黄',
-  red: '红',
-  orange: '橙',
-  green: '绿',
-  blue: '蓝',
-  black: '未',
-}
 
 const COLOR_HEX: Record<FaceColor, string> = {
   white: '#FFFFFF',
@@ -61,6 +52,7 @@ export default function SimpleColorPicker({
   onSelect,
   onClose,
 }: SimpleColorPickerProps) {
+  const { t } = useTranslation()
   if (!isVisible) return null
 
   const handleColorClick = (color: FaceColor) => {
@@ -88,9 +80,9 @@ export default function SimpleColorPicker({
                 backgroundColor: COLOR_HEX[color],
               }}
               onClick={() => handleColorClick(color)}
-              title={COLOR_NAMES[color]}
+              title={t(`colors.short.${color}`)}
             >
-              <span className="color-name">{COLOR_NAMES[color]}</span>
+              <span className="color-name">{t(`colors.short.${color}`)}</span>
             </div>
           )
         })}

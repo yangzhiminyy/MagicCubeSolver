@@ -1,0 +1,119 @@
+{
+  "language": {
+    "zh": "中文",
+    "en": "English"
+  },
+  "control": {
+    "title": "Cube controls",
+    "scramble": "Scramble",
+    "solve": "Solve",
+    "cameraInput": "Camera input",
+    "cameraTitle": "Enter cube state using the camera",
+    "algorithmLabel": "Solver:",
+    "algoReverse": "Reverse moves (fastest; needs scramble history)",
+    "algoKociemba": "Kociemba (fast, two-phase)",
+    "algoThistle": "Thistlethwaite (four-phase) 🚧 WIP",
+    "algoIda": "IDA* (slower, optimal) 🚧 WIP",
+    "manualOps": "Manual moves",
+    "solutionSteps": "Solution",
+    "totalMoves": "Moves: {{count}}",
+    "currentStep": "Step: {{current}} / {{total}}",
+    "prevStep": "Previous",
+    "nextStep": "Next",
+    "coords": "Face labels",
+    "coordU": "U (up)",
+    "coordD": "D (down)",
+    "coordF": "F (front)",
+    "coordB": "B (back)",
+    "coordL": "L (left)",
+    "coordR": "R (right)",
+    "tips": "Tips",
+    "tipDrag": "Drag with left mouse: orbit",
+    "tipZoom": "Scroll wheel: zoom",
+    "tipButtons": "Buttons: turn the cube"
+  },
+  "faces": {
+    "U": "Up (U)",
+    "D": "Down (D)",
+    "F": "Front (F)",
+    "B": "Back (B)",
+    "L": "Left (L)",
+    "R": "Right (R)"
+  },
+  "colors": {
+    "short": {
+      "white": "W",
+      "yellow": "Y",
+      "red": "R",
+      "orange": "O",
+      "green": "G",
+      "blue": "B",
+      "black": "—"
+    },
+    "full": {
+      "white": "White",
+      "yellow": "Yellow",
+      "red": "Red",
+      "orange": "Orange",
+      "green": "Green",
+      "blue": "Blue",
+      "black": "Unset"
+    }
+  },
+  "app": {
+    "solveEmptyFail": "Solve failed: could not build a solvable pattern from this state.\n\nThis may be because CubeState → KPattern conversion is not fully implemented yet.",
+    "solveError": "Solving is unavailable. See the console for details.\n\nError: {{message}}",
+    "cameraProcessError": "Failed to apply camera input: {{message}}"
+  },
+  "camera": {
+    "modalTitle": "Camera cube input",
+    "currentFace": "Current face: {{face}}",
+    "hint": "💡 Tip: tap the center again to scan colors, or use the button below",
+    "recognizing": "Scanning…",
+    "captureColor": "Scan colors",
+    "placeholder": "👆 Tap a face center to start",
+    "progress": "Progress: {{done}} / 6 complete",
+    "cancel": "Cancel",
+    "finish": "Done",
+    "completeAllFaces": "Please complete all six faces",
+    "cameraDenied": "Camera access denied. Check browser permissions."
+  },
+  "cubeNet": {
+    "progress": "Progress: {{done}} / 6 complete",
+    "titleActivate": "Tap to activate {{face}}",
+    "titlePickColor": "{{color}} (tap to pick)"
+  },
+  "faceInput": {
+    "pickColor": "Pick a color:",
+    "cancel": "Cancel",
+    "done": "Face complete",
+    "confidenceTitle": "{{color}} (confidence: {{pct}}%)"
+  },
+  "instructions": {
+    "toggle": "Instructions",
+    "centerTitle": "📷 Center (camera)",
+    "center1": "Tap the center: activate that face and open the preview",
+    "center2": "Tap again: auto-detect colors for that face",
+    "center3": "Tap another face center: switch to that face",
+    "edgeTitle": "🎨 Edges (manual colors)",
+    "edge1": "Tap an edge cell: open the 2×3 color picker",
+    "edge2": "Tap a swatch: select and close the menu",
+    "edge3": "The menu highlights the solved color for the current face (e.g. white on U)",
+    "doneTitle": "✅ Finishing",
+    "done1": "When all 8 edges on a face are set, that face shows ✓",
+    "done2": "When all 6 faces are done, tap “Done”",
+    "done3": "Progress is shown under the net: X / 6 complete",
+    "tipsTitle": "💡 Notes",
+    "tip1": "The preview is mirrored for easier alignment",
+    "tip2": "The grid helps align the physical face",
+    "tip3": "Low confidence shows a “!” warning",
+    "tip4": "The net layout shows all faces at once"
+  },
+  "colorCarousel": {
+    "hint": "Tap to cycle | tap a swatch to pick",
+    "close": "Close"
+  },
+  "common": {
+    "close": "Close"
+  }
+}

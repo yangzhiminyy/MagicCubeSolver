@@ -4,7 +4,8 @@
  */
 
 import { useState } from 'react'
-import { FaceColor, Face } from '../utils/cubeTypes'
+import { useTranslation } from 'react-i18next'
+import { FaceColor } from '../utils/cubeTypes'
 import { FaceInputState } from '../utils/cubeInputConverter'
 import './FaceInput.css'
 
@@ -14,26 +15,7 @@ interface FaceInputProps {
   onComplete: () => void
 }
 
-const FACE_LABELS: Record<Face, string> = {
-  U: '上 (U)',
-  D: '下 (D)',
-  F: '前 (F)',
-  B: '后 (B)',
-  L: '左 (L)',
-  R: '右 (R)',
-}
-
 const COLOR_OPTIONS: FaceColor[] = ['white', 'yellow', 'red', 'orange', 'green', 'blue', 'black']
-
-const COLOR_NAMES: Record<FaceColor, string> = {
-  white: '白色',
-  yellow: '黄色',
-  red: '红色',
-  orange: '橙色',
-  green: '绿色',
-  blue: '蓝色',
-  black: '未设置',
-}
 
 const COLOR_HEX: Record<FaceColor, string> = {
   white: '#FFFFFF',
@@ -46,6 +28,7 @@ const COLOR_HEX: Record<FaceColor, string> = {
 }
 
 export default function FaceInput({ faceState, onColorChange, onComplete }: FaceInputProps) {
+  const { t } = useTranslation()
   const [selectedCell, setSelectedCell] = useState<{ row: number, col: number } | null>(null)
 
   const handleCellClick = (row: number, col: number) => {
@@ -61,7 +44,7 @@ export default function FaceInput({ faceState, onColorChange, onComplete }: Face
 
   return (
     <div className="face-input">
-      <h3>{FACE_LABELS[faceState.face]}</h3>
+      <h3>{t(`faces.${faceState.face}`)}</h3>
       
       <div className="face-grid">
         {faceState.colors.map((row, rowIdx) => (
@@ -76,9 +59,12 @@ export default function FaceInput({ faceState, onColorChange, onComplete }: Face
                   className={`face-cell ${isSelected ? 'selected' : ''} ${confidence < 0.5 ? 'low-confidence' : ''}`}
                   style={{ backgroundColor: COLOR_HEX[color] }}
                   onClick={() => handleCellClick(rowIdx, colIdx)}
-                  title={`${COLOR_NAMES[color]} (置信度: ${(confidence * 100).toFixed(0)}%)`}
+                  title={t('faceInput.confidenceTitle', {
+                    color: t(`colors.full.${color}`),
+                    pct: (confidence * 100).toFixed(0),
+                  })}
                 >
-                  <span className="cell-label">{COLOR_NAMES[color].charAt(0)}</span>
+                  <span className="cell-label">{t(`colors.short.${color}`)}</span>
                   {confidence < 0.5 && <span className="confidence-warning">!</span>}
                 </div>
               )
@@ -89,7 +75,7 @@ export default function FaceInput({ faceState, onColorChange, onComplete }: Face
 
       {selectedCell && (
         <div className="color-picker">
-          <p>选择颜色:</p>
+          <p>{t('faceInput.pickColor')}</p>
           <div className="color-options">
             {COLOR_OPTIONS.map(color => (
               <button
@@ -97,13 +83,13 @@ export default function FaceInput({ faceState, onColorChange, onComplete }: Face
                 className="color-option"
                 style={{ backgroundColor: COLOR_HEX[color] }}
                 onClick={() => handleColorSelect(color)}
-                title={COLOR_NAMES[color]}
+                title={t(`colors.full.${color}`)}
               >
-                {COLOR_NAMES[color]}
+                {t(`colors.full.${color}`)}
               </button>
             ))}
           </div>
-          <button className="btn-cancel" onClick={() => setSelectedCell(null)}>取消</button>
+          <button className="btn-cancel" onClick={() => setSelectedCell(null)}>{t('faceInput.cancel')}</button>
         </div>
       )}
 
@@ -118,7 +104,7 @@ export default function FaceInput({ faceState, onColorChange, onComplete }: Face
               }
             }}
           />
-          已完成录入
+          {t('faceInput.done')}
         </label>
       </div>
     </div>
