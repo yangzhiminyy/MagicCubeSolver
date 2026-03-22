@@ -1,21 +1,43 @@
-import { CubieBasedCubeState, Move } from './cubeTypes'
-import { createSolvedCubieBasedCube, applyMove } from './cubieBasedCubeLogic'
+import {
+  CubieBasedCubeState,
+  Move,
+  CornerCubieId,
+  EdgeCubieId,
+  EdgeCubie,
+  CubieColors,
+  FACE_COLORS,
+} from './cubeTypes'
+import { createSolvedCubieBasedCube, applyMove, cloneCubieBasedState } from './cubieBasedCubeLogic'
 
 /**
  * Thistlethwaite 算法的四个阶段
  * 每个阶段限制允许的移动，逐步简化魔方状态
  */
 
-// 阶段 0 -> 1: 允许所有移动，目标：边块方向正确
-// 注意：简化版本跳过了这个阶段
-// const G0_MOVES: Move[] = [
-//   'R', "R'", 'R2',
-//   'L', "L'", 'L2',
-//   'U', "U'", 'U2',
-//   'D', "D'", 'D2',
-//   'F', "F'", 'F2',
-//   'B', "B'", 'B2',
-// ]
+/** 阶段 0 -> 1: 允许所有移动，目标：边块朝向（G1） */
+const G0_MOVES: Move[] = [
+  'R',
+  "R'",
+  'R2',
+  'L',
+  "L'",
+  'L2',
+  'U',
+  "U'",
+  'U2',
+  'D',
+  "D'",
+  'D2',
+  'F',
+  "F'",
+  'F2',
+  'B',
+  "B'",
+  'B2',
+]
+
+const CORNER_IDS: CornerCubieId[] = ['UFR', 'UFL', 'UBL', 'UBR', 'DFR', 'DFL', 'DBL', 'DBR']
+const EDGE_IDS: EdgeCubieId[] = ['UF', 'UR', 'UB', 'UL', 'DF', 'DR', 'DB', 'DL', 'FR', 'FL', 'BR', 'BL']
 
 // 阶段 1 -> 2: 只允许 F, B, R, L, U2, D2，目标：角块方向正确
 const G1_MOVES: Move[] = [
@@ -54,95 +76,498 @@ function coordinatesEqual(coord1: [number, number, number], coord2: [number, num
   return coord1[0] === coord2[0] && coord1[1] === coord2[1] && coord1[2] === coord2[2]
 }
 
+function cubieColorsEqual(a: CubieColors, b: CubieColors): boolean {
+  return (
+    a.upper === b.upper &&
+    a.down === b.down &&
+    a.front === b.front &&
+    a.back === b.back &&
+    a.left === b.left &&
+    a.right === b.right
+  )
+}
+
 /**
- * 检查是否在阶段 0（已解决状态）
+ * 全盘已解（G4）：位置与贴纸朝向均与已解状态一致
  */
 function isInG0(state: CubieBasedCubeState): boolean {
   const solved = createSolvedCubieBasedCube()
-  
-  // 检查所有角块坐标
-  for (const [id, corner] of Object.entries(state.corners)) {
-    const solvedCorner = solved.corners[id as keyof typeof solved.corners]
-    if (!coordinatesEqual(corner.coordinate, solvedCorner.coordinate)) {
-      return false
-    }
+
+  for (const id of CORNER_IDS) {
+    const c = state.corners[id]
+    const sc = solved.corners[id]
+    if (!coordinatesEqual(c.coordinate, sc.coordinate)) return false
+    if (!cubieColorsEqual(c.colors, sc.colors)) return false
   }
-  
-  // 检查所有边块坐标
-  for (const [id, edge] of Object.entries(state.edges)) {
-    const solvedEdge = solved.edges[id as keyof typeof solved.edges]
-    if (!coordinatesEqual(edge.coordinate, solvedEdge.coordinate)) {
-      return false
-    }
+
+  for (const id of EDGE_IDS) {
+    const e = state.edges[id]
+    const se = solved.edges[id]
+    if (!coordinatesEqual(e.coordinate, se.coordinate)) return false
+    if (!cubieColorsEqual(e.colors, se.colors)) return false
   }
-  
+
   return true
 }
 
 /**
- * 检查是否在阶段 1（边块方向正确）
- * 简化版本：检查所有边块是否在正确的位置
- * 注意：这是一个非常简化的实现，完整的 Thistlethwaite 需要检查边块的方向
+ * 槽位上的棱是否「朝向错误」（与 isInG1 一致，按槽位坐标判定贴纸）
  */
-function isInG1(_state: CubieBasedCubeState): boolean {
-  // 简化实现：直接返回 true，跳过这个阶段
-  // 因为完整的边块方向检查需要复杂的群论计算
-  // 对于简化版本，我们假设所有状态都在 G1
+function edgeOrientationWrongAtSlot(edge: EdgeCubie, slotCoord: [number, number, number]): boolean {
+  const [, y, z] = slotCoord
+  const c = edge.colors
+  if (y === 1) {
+    return c.upper !== FACE_COLORS.U
+  }
+  if (y === -1) {
+    return c.down !== FACE_COLORS.D
+  }
+  if (z === 1) {
+    return c.front !== FACE_COLORS.F
+  }
+  if (z === -1) {
+    return c.back !== FACE_COLORS.B
+  }
   return true
 }
 
 /**
- * 检查是否在阶段 2（角块方向正确）
- * 简化版本：检查角块是否在正确的位置
+ * 边朝向 11 位索引（0..2047）：UF…BR 共 11 槽（EDGE_IDS[0..10]）打包；BL 槽不计入索引（与父表 BFS 一致）。
+ * 不对 12 槽做 XOR 奇偶校验：贴纸「错向」与抽象 EO 群的 parity bit 在此模型下不完全一致，误拒合法状态。
+ */
+function encodeEdgeOrientationIndex(state: CubieBasedCubeState): number {
+  const solved = createSolvedCubieBasedCube()
+  const byCoord = new Map<string, EdgeCubie>()
+  for (const e of Object.values(state.edges)) {
+    byCoord.set(e.coordinate.join(','), e)
+  }
+  let idx = 0
+  for (let i = 0; i < 11; i++) {
+    const id = EDGE_IDS[i]
+    const slotCoord = solved.edges[id].coordinate as [number, number, number]
+    const edge = byCoord.get(slotCoord.join(','))
+    if (!edge) return -1
+    if (edgeOrientationWrongAtSlot(edge, slotCoord)) idx |= 1 << i
+  }
+  return idx
+}
+
+/** G1：12 个棱槽朝向均正确 */
+function isInG1(state: CubieBasedCubeState): boolean {
+  const solved = createSolvedCubieBasedCube()
+  const byCoord = new Map<string, EdgeCubie>()
+  for (const e of Object.values(state.edges)) {
+    byCoord.set(e.coordinate.join(','), e)
+  }
+  for (const id of EDGE_IDS) {
+    const slotCoord = solved.edges[id].coordinate as [number, number, number]
+    const edge = byCoord.get(slotCoord.join(','))
+    if (!edge) return false
+    if (edgeOrientationWrongAtSlot(edge, slotCoord)) return false
+  }
+  return true
+}
+
+/** 编码策略变更时 bump，强制重建 EO BFS 表 */
+const EO_TABLE_BUILD_VERSION = 4
+
+/** 边朝向父指针表：从已解 EO 做 BFS，仅 2048 状态，一次性构建 */
+let eoParentTable: Array<{ prev: number; move: Move } | undefined> | null = null
+let eoTableBuiltCount = 0
+let eoTableBuildVersion = 0
+
+function buildEdgeOrientationParentTable(): void {
+  if (eoParentTable !== null && eoTableBuildVersion === EO_TABLE_BUILD_VERSION) return
+  eoParentTable = null
+
+  const parents: Array<{ prev: number; move: Move } | undefined> = new Array(2048).fill(undefined)
+  const rep: CubieBasedCubeState[] = new Array(2048)
+  const seen = new Array(2048).fill(false)
+  const q: number[] = []
+
+  const solved = createSolvedCubieBasedCube()
+  rep[0] = cloneCubieBasedState(solved)
+  seen[0] = true
+  q.push(0)
+
+  while (q.length > 0) {
+    const eo = q.shift()!
+    const st = rep[eo]
+    for (const move of G0_MOVES) {
+      const ns = applyMove(st, move)
+      const neo = encodeEdgeOrientationIndex(ns)
+      if (neo < 0) continue
+      if (!seen[neo]) {
+        seen[neo] = true
+        parents[neo] = { prev: eo, move }
+        rep[neo] = ns
+        q.push(neo)
+      }
+    }
+  }
+
+  eoParentTable = parents
+  eoTableBuildVersion = EO_TABLE_BUILD_VERSION
+  eoTableBuiltCount = seen.filter(Boolean).length
+  console.log(`Thistlethwaite: 边朝向(EO) BFS 表已构建，可达 ${eoTableBuiltCount}/2048 状态`)
+}
+
+function inverseMove(m: Move): Move {
+  if (m.endsWith('2')) return m
+  if (m.endsWith("'")) return m.slice(0, -1) as Move
+  return (m + "'") as Move
+}
+
+/**
+ * 阶段 0→1：用 EO 父表反推移动（从当前 EO 沿 parent 走回 0，每步施加 inverse(move)）
+ */
+function solvePhase0MovesFromTable(state: CubieBasedCubeState): Move[] | null {
+  buildEdgeOrientationParentTable()
+  const parents = eoParentTable!
+
+  if (isInG1(state)) return []
+
+  let eo = encodeEdgeOrientationIndex(state)
+  if (eo < 0) {
+    console.warn('Thistlethwaite: 边朝向编码失败（槽位缺棱），无法用 EO 表')
+    return null
+  }
+  if (eo === 0) {
+    console.warn('Thistlethwaite: UF…BR 位 EO 为 0 但尚未满足 G1（例如 BL 槽），无法用 EO 表')
+    return null
+  }
+  if (parents[eo] === undefined) {
+    console.warn(`Thistlethwaite: EO 索引 ${eo} 不在从已解出发的可达表中`)
+    return null
+  }
+
+  const moves: Move[] = []
+  while (eo !== 0) {
+    const par = parents[eo]
+    if (par === undefined) return null
+    moves.push(inverseMove(par.move))
+    eo = par.prev
+  }
+
+  let verify = cloneCubieBasedState(state)
+  for (const m of moves) {
+    verify = applyMove(verify, m)
+  }
+  if (!isInG1(verify)) {
+    console.warn('Thistlethwaite: EO 查表路径未到达 G1（抽象索引碰撞），将回退 IDA*')
+    return null
+  }
+  return moves
+}
+
+/**
+ * G2：在 G1 基础上，角块朝向正确（U/D 角贴纸在 U/D 面）
  */
 function isInG2(state: CubieBasedCubeState): boolean {
-  // 简化实现：检查所有角块是否在正确的位置
-  const solved = createSolvedCubieBasedCube()
-  
-  // 检查所有角块坐标
-  for (const [id, corner] of Object.entries(state.corners)) {
-    const solvedCorner = solved.corners[id as keyof typeof solved.corners]
-    if (!coordinatesEqual(corner.coordinate, solvedCorner.coordinate)) {
-      return false
+  if (!isInG1(state)) return false
+  for (const corner of Object.values(state.corners)) {
+    const y = corner.coordinate[1]
+    if (y === 1) {
+      if (corner.colors.upper !== FACE_COLORS.U) return false
+    } else if (y === -1) {
+      if (corner.colors.down !== FACE_COLORS.D) return false
     }
   }
-  
   return true
 }
 
+/** 角块朝向错误个数（与 isInG2 判定一致；仅当已在 G1 时有意义） */
+function wrongCornerOrientationCount(state: CubieBasedCubeState): number {
+  let n = 0
+  for (const corner of Object.values(state.corners)) {
+    const y = corner.coordinate[1]
+    if (y === 1) {
+      if (corner.colors.upper !== FACE_COLORS.U) n++
+    } else if (y === -1) {
+      if (corner.colors.down !== FACE_COLORS.D) n++
+    }
+  }
+  return n
+}
+
+/** 棱槽朝向错误个数（与 isInG1 一致） */
+function wrongEdgeOrientationCount(state: CubieBasedCubeState): number {
+  const solved = createSolvedCubieBasedCube()
+  const byCoord = new Map<string, EdgeCubie>()
+  for (const e of Object.values(state.edges)) {
+    byCoord.set(e.coordinate.join(','), e)
+  }
+  let n = 0
+  for (const id of EDGE_IDS) {
+    const slotCoord = solved.edges[id].coordinate as [number, number, number]
+    const edge = byCoord.get(slotCoord.join(','))
+    if (!edge) return 12
+    if (edgeOrientationWrongAtSlot(edge, slotCoord)) n++
+  }
+  return n
+}
+
+/** G0→G1：单步最多影响 4 条棱的朝向（同一面一层） */
+function heuristicG0ToG1(state: CubieBasedCubeState): number {
+  if (isInG1(state)) return 0
+  return Math.ceil(wrongEdgeOrientationCount(state) / 4)
+}
+
+/** G1→G2：单步最多影响 4 个角块的朝向（同一面一层） */
+function heuristicG1ToG2(state: CubieBasedCubeState): number {
+  if (isInG2(state)) return 0
+  if (!isInG1(state)) return 8
+  return Math.ceil(wrongCornerOrientationCount(state) / 4)
+}
+
 /**
- * 检查是否在阶段 3（边块位置正确）
- * 检查所有边块是否在正确的位置
+ * G3：边块已在「家」位置（且保持 G2 角朝向）
  */
 function isInG3(state: CubieBasedCubeState): boolean {
+  if (!isInG2(state)) return false
   const solved = createSolvedCubieBasedCube()
-  
-  // 检查所有边块坐标
-  for (const [id, edge] of Object.entries(state.edges)) {
-    const solvedEdge = solved.edges[id as keyof typeof solved.edges]
+  for (const id of EDGE_IDS) {
+    const edge = state.edges[id]
+    const solvedEdge = solved.edges[id]
     if (!coordinatesEqual(edge.coordinate, solvedEdge.coordinate)) {
       return false
     }
   }
-  
   return true
 }
 
+function serializeCubieColors(c: CubieColors): string {
+  return [c.upper, c.down, c.front, c.back, c.left, c.right].join(',')
+}
+
 /**
- * 生成状态的唯一标识符（用于去重）
- * 优化：只使用坐标信息，因为ID是固定的
+ * 完整状态键（固定 id 顺序 + 坐标 + 贴纸），用于 BFS 去重。
+ * 禁止仅用「坐标排序」：合法魔方下角/边坐标集合不变，会误判为同一状态。
  */
 function stateKey(state: CubieBasedCubeState): string {
-  // 只使用坐标信息生成唯一标识，更高效
-  const cornerCoords = Object.values(state.corners)
-    .map(corner => corner.coordinate.join(','))
-    .sort()
-    .join('|')
-  const edgeCoords = Object.values(state.edges)
-    .map(edge => edge.coordinate.join(','))
-    .sort()
-    .join('|')
-  return `C:${cornerCoords}|E:${edgeCoords}`
+  const parts: string[] = []
+  for (const id of CORNER_IDS) {
+    const corner = state.corners[id]
+    parts.push(`${id}:${corner.coordinate.join(',')}:${serializeCubieColors(corner.colors)}`)
+  }
+  for (const id of EDGE_IDS) {
+    const edge = state.edges[id]
+    parts.push(`${id}:${edge.coordinate.join(',')}:${serializeCubieColors(edge.colors)}`)
+  }
+  return parts.join('|')
+}
+
+/** 对面序剪枝：与 IDA* 一致，减少 BFS 重复扩展 */
+function isOppositePairRedundant(lastFace: string, currentFace: string): boolean {
+  if (lastFace === 'R' && currentFace === 'L') return true
+  if (lastFace === 'U' && currentFace === 'D') return true
+  if (lastFace === 'F' && currentFace === 'B') return true
+  return false
+}
+
+function yieldToBrowser(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0))
+}
+
+/**
+ * 阶段 0→2：全 G0 转动下将棱 EO 调到 G1。EO 查表失败时的回退（IDA*）。
+ */
+async function searchG0ToG1IDA(
+  start: CubieBasedCubeState,
+  maxDepthG: number,
+  maxF: number,
+  timeoutMs: number,
+  maxNodes: number,
+  yieldEvery: number,
+  onProgress?: (round: number, threshold: number) => void
+): Promise<Move[] | null> {
+  if (isInG1(start)) return []
+
+  const t0 = Date.now()
+  let totalNodes = 0
+  let idaRound = 0
+  let threshold = heuristicG0ToG1(start)
+  let visited = new Map<string, number>()
+
+  async function dfs(
+    s: CubieBasedCubeState,
+    path: Move[],
+    g: number,
+    thr: number
+  ): Promise<{ found: boolean; path: Move[]; nextThreshold: number }> {
+    if (Date.now() - t0 > timeoutMs) {
+      return { found: false, path: [], nextThreshold: Infinity }
+    }
+    if (totalNodes >= maxNodes) {
+      return { found: false, path: [], nextThreshold: Infinity }
+    }
+
+    if (isInG1(s)) {
+      return { found: true, path: path.slice(), nextThreshold: thr }
+    }
+    if (g >= maxDepthG) {
+      return { found: false, path: [], nextThreshold: Infinity }
+    }
+
+    const key = stateKey(s)
+    const prevG = visited.get(key)
+    if (prevG !== undefined && prevG <= g) {
+      return { found: false, path: [], nextThreshold: Infinity }
+    }
+    visited.set(key, g)
+    totalNodes++
+    if (yieldEvery > 0 && totalNodes % yieldEvery === 0) {
+      await yieldToBrowser()
+    }
+
+    const h = heuristicG0ToG1(s)
+    const f = g + h
+    if (f > thr) {
+      return { found: false, path: [], nextThreshold: f }
+    }
+
+    let minNext = Infinity
+    for (const move of G0_MOVES) {
+      if (path.length > 0) {
+        const lastMove = path[path.length - 1]
+        const lastFace = lastMove[0]
+        const currentFace = move[0]
+        if (lastFace === currentFace) continue
+        if (isOppositePairRedundant(lastFace, currentFace)) continue
+      }
+      const ns = applyMove(s, move)
+      path.push(move)
+      const r = await dfs(ns, path, g + 1, thr)
+      path.pop()
+      if (r.found) return r
+      minNext = Math.min(minNext, r.nextThreshold)
+    }
+    return { found: false, path: [], nextThreshold: minNext }
+  }
+
+  while (threshold <= maxF) {
+    if (Date.now() - t0 > timeoutMs) {
+      console.warn(`阶段 0->1 IDA* 超时（${timeoutMs}ms），累计结点 ${totalNodes}，阈值 ${threshold}`)
+      return null
+    }
+    idaRound++
+    visited = new Map<string, number>()
+    onProgress?.(idaRound, threshold)
+
+    const result = await dfs(start, [], 0, threshold)
+    if (result.found) {
+      console.log(`阶段 0->1 IDA* 成功：轮次 ${idaRound}，阈值 ${threshold}，累计结点 ${totalNodes}`)
+      return result.path
+    }
+    const nextT = result.nextThreshold
+    if (nextT === Infinity || nextT > maxF) {
+      console.warn(`阶段 0->1 IDA* 未找到：nextThreshold=${nextT}，maxF=${maxF}，累计结点 ${totalNodes}`)
+      return null
+    }
+    threshold = nextT > threshold ? nextT : threshold + 1
+  }
+  return null
+}
+
+/**
+ * 阶段 1→2：G1 转动下将角块朝向调到 G2。用 IDA* 替代 BFS（前沿同样会爆炸）。
+ * 顺序：先判 isInG2，再判 g>=maxDepthG。
+ */
+async function searchG1ToG2IDA(
+  start: CubieBasedCubeState,
+  maxDepthG: number,
+  maxF: number,
+  timeoutMs: number,
+  maxNodes: number,
+  yieldEvery: number,
+  onProgress?: (round: number, threshold: number) => void
+): Promise<Move[] | null> {
+  if (isInG2(start)) return []
+
+  const t0 = Date.now()
+  let totalNodes = 0
+  let idaRound = 0
+  let threshold = heuristicG1ToG2(start)
+  let visited = new Map<string, number>()
+
+  async function dfs(
+    s: CubieBasedCubeState,
+    path: Move[],
+    g: number,
+    thr: number
+  ): Promise<{ found: boolean; path: Move[]; nextThreshold: number }> {
+    if (Date.now() - t0 > timeoutMs) {
+      return { found: false, path: [], nextThreshold: Infinity }
+    }
+    if (totalNodes >= maxNodes) {
+      return { found: false, path: [], nextThreshold: Infinity }
+    }
+
+    if (isInG2(s)) {
+      return { found: true, path: path.slice(), nextThreshold: thr }
+    }
+    if (g >= maxDepthG) {
+      return { found: false, path: [], nextThreshold: Infinity }
+    }
+
+    const key = stateKey(s)
+    const prevG = visited.get(key)
+    if (prevG !== undefined && prevG <= g) {
+      return { found: false, path: [], nextThreshold: Infinity }
+    }
+    visited.set(key, g)
+    totalNodes++
+    if (yieldEvery > 0 && totalNodes % yieldEvery === 0) {
+      await yieldToBrowser()
+    }
+
+    const h = heuristicG1ToG2(s)
+    const f = g + h
+    if (f > thr) {
+      return { found: false, path: [], nextThreshold: f }
+    }
+
+    let minNext = Infinity
+    for (const move of G1_MOVES) {
+      if (path.length > 0) {
+        const lastMove = path[path.length - 1]
+        const lastFace = lastMove[0]
+        const currentFace = move[0]
+        if (lastFace === currentFace) continue
+        if (isOppositePairRedundant(lastFace, currentFace)) continue
+      }
+      const ns = applyMove(s, move)
+      path.push(move)
+      const r = await dfs(ns, path, g + 1, thr)
+      path.pop()
+      if (r.found) return r
+      minNext = Math.min(minNext, r.nextThreshold)
+    }
+    return { found: false, path: [], nextThreshold: minNext }
+  }
+
+  while (threshold <= maxF) {
+    if (Date.now() - t0 > timeoutMs) {
+      console.warn(`阶段 1->2 IDA* 超时（${timeoutMs}ms），累计结点 ${totalNodes}，阈值 ${threshold}`)
+      return null
+    }
+    idaRound++
+    visited = new Map<string, number>()
+    onProgress?.(idaRound, threshold)
+
+    const result = await dfs(start, [], 0, threshold)
+    if (result.found) {
+      console.log(`阶段 1->2 IDA* 成功：轮次 ${idaRound}，阈值 ${threshold}，累计结点 ${totalNodes}`)
+      return result.path
+    }
+    const nextT = result.nextThreshold
+    if (nextT === Infinity || nextT > maxF) {
+      console.warn(`阶段 1->2 IDA* 未找到：nextThreshold=${nextT}，maxF=${maxF}，累计结点 ${totalNodes}`)
+      return null
+    }
+    threshold = nextT > threshold ? nextT : threshold + 1
+  }
+  return null
 }
 
 /**
@@ -166,78 +591,76 @@ async function searchInGroup(
   const queue: Array<{ state: CubieBasedCubeState; path: Move[] }> = [{ state, path: [] }]
   
   const visited = new Set<string>()
-  const BATCH_SIZE = 50 // 减少批处理大小，更频繁地让出控制权
+  /** 同层内分批扩展；每批结束 yield，避免与 IDA* 类似长时间占满主线程导致页面卡死 */
+  const BATCH_SIZE = 4000
+  /** 与 IDA* 阶段搜索类似，每扩展若干结点让出一次（大批次内仍可能阻塞，故配合 BATCH 尾部 yield） */
+  const YIELD_EVERY_NODES = 2500
   let totalProcessed = 0
-  const MAX_NODES = 50000 // 限制最大搜索节点数
-  
+  const MAX_NODES = 120_000 // 限制最大搜索节点数（stateKey 正确后需更大预算）
+
   for (let depth = 0; depth < maxDepth && queue.length > 0; depth++) {
     const levelSize = queue.length
     let processed = 0
-    
+
     while (processed < levelSize && queue.length > 0) {
-      // 检查超时
       if (Date.now() - startTime > timeout) {
         console.warn(`搜索超时（${timeout}ms），已处理 ${totalProcessed} 个节点`)
         return null
       }
-      
-      // 检查最大节点数
+
       if (totalProcessed > MAX_NODES) {
         console.warn(`达到最大节点数限制（${MAX_NODES}），停止搜索`)
         return null
       }
-      
-      // 批处理，每处理一批就让出控制权
+
       const batchEnd = Math.min(processed + BATCH_SIZE, levelSize)
-      
+
       for (let i = processed; i < batchEnd && queue.length > 0; i++) {
         const { state: currentState, path } = queue.shift()!
         const stateKeyStr = stateKey(currentState)
-        
+
         if (visited.has(stateKeyStr)) {
           continue
         }
         visited.add(stateKeyStr)
         totalProcessed++
-        
-        // 尝试所有允许的移动
+
+        if (YIELD_EVERY_NODES > 0 && totalProcessed % YIELD_EVERY_NODES === 0) {
+          await yieldToBrowser()
+        }
+
         for (const move of allowedMoves) {
-          // 避免重复移动
           if (path.length > 0) {
             const lastMove = path[path.length - 1]
             const lastFace = lastMove[0]
             const currentFace = move[0]
-            
-            // 跳过相同面的连续移动（除非是180度旋转）
-            if (lastFace === currentFace && !lastMove.endsWith('2') && !move.endsWith('2')) {
-              continue
-            }
+            if (lastFace === currentFace) continue
+            if (isOppositePairRedundant(lastFace, currentFace)) continue
           }
-          
+
           const newState = applyMove(currentState, move)
           const newPath = [...path, move]
-          
+
           if (isGoal(newState)) {
             console.log(`找到解！深度: ${depth + 1}, 总处理节点: ${totalProcessed}`)
             return newPath
           }
-          
+
           queue.push({ state: newState, path: newPath })
         }
       }
-      
+
       processed = batchEnd
-      
-      // 报告进度
-      if (onProgress && processed % (BATCH_SIZE * 5) === 0) {
+
+      if (onProgress && processed % (BATCH_SIZE * 2) === 0) {
         onProgress(depth, queue.length)
       }
-      
-      // 让出控制权给浏览器，避免阻塞 UI
-      await new Promise(resolve => setTimeout(resolve, 0))
+
+      await yieldToBrowser()
     }
-    
+
     console.log(`深度 ${depth} 完成，队列大小: ${queue.length}, 已处理: ${totalProcessed}`)
+    await yieldToBrowser()
   }
   
   console.warn(`搜索完成但未找到解，最大深度: ${maxDepth}, 总处理节点: ${totalProcessed}`)
@@ -260,49 +683,80 @@ export async function solveByThistlethwaite(
   
   let currentState = cubieState
   const solution: Move[] = []
-  
-  // 阶段 0 -> 1: 边块方向正确（简化版本，跳过）
-  // 由于完整的边块方向检查需要复杂的群论计算，我们简化跳过这个阶段
+
+  // 阶段 0 -> 1: 边块朝向（2048 状态 BFS 父表，O(步数) 查表，避免指数搜索）
   if (!isInG1(currentState)) {
-    console.log('Thistlethwaite: 跳过阶段 0->1（简化版本）')
-    // 简化版本：直接认为已在 G1
+    console.log('Thistlethwaite: 开始阶段 0->1（边块朝向，EO 查表）')
+    onProgress?.(0, 0, 0)
+    let path0 = solvePhase0MovesFromTable(currentState)
+    if (!path0) {
+      console.warn('Thistlethwaite: EO 查表不可用，回退到 G0→G1 IDA*')
+      const d = maxDepthPerStage
+      path0 = await searchG0ToG1IDA(
+        currentState,
+        d + 12,
+        d + 22,
+        120_000,
+        2_000_000,
+        2500,
+        (round, thr) => onProgress?.(0, round, thr)
+      )
+      if (!path0) {
+        path0 = await searchG0ToG1IDA(
+          currentState,
+          d + 18,
+          d + 30,
+          240_000,
+          5_000_000,
+          5000,
+          (round, thr) => onProgress?.(0, round, thr)
+        )
+      }
+    }
+    if (!path0) {
+      console.error('Thistlethwaite: 阶段 0->1 失败（EO 不可达、编码无效或 IDA* 未找到）')
+      return []
+    }
+    console.log(`Thistlethwaite: 阶段 0->1 完成，步数: ${path0.length}`)
+    solution.push(...path0)
+    path0.forEach((move) => {
+      currentState = applyMove(currentState, move)
+    })
   }
-  
-  // 阶段 1 -> 2: 角块方向正确
+
+  // 阶段 1 -> 2: 角块朝向（G1 转动；IDA*，避免 BFS 前沿爆炸与 30s 超时）
   if (!isInG2(currentState)) {
-    console.log('Thistlethwaite: 开始阶段 1->2（角块位置）')
-    const path = await searchInGroup(
+    console.log('Thistlethwaite: 开始阶段 1->2（角块朝向，IDA*）')
+    const d = maxDepthPerStage
+    let path = await searchG1ToG2IDA(
       currentState,
-      G1_MOVES,
-      isInG2,
-      maxDepthPerStage + 2, // 增加深度以提高成功率
-      (depth, queueSize) => onProgress?.(1, depth, queueSize)
+      d + 12,
+      d + 22,
+      120_000,
+      2_000_000,
+      2500,
+      (round, thr) => onProgress?.(1, round, thr)
     )
     if (!path) {
-      console.warn('Thistlethwaite: 无法完成阶段 1->2，尝试增加深度')
-      // 尝试增加深度
-      const path2 = await searchInGroup(
+      path = await searchG1ToG2IDA(
         currentState,
-        G1_MOVES,
-        isInG2,
-        maxDepthPerStage + 4,
-        (depth, queueSize) => onProgress?.(1, depth, queueSize)
+        d + 18,
+        d + 30,
+        240_000,
+        5_000_000,
+        5000,
+        (round, thr) => onProgress?.(1, round, thr)
       )
-      if (!path2) {
-        console.error('Thistlethwaite: 阶段 1->2 失败')
-        return []
-      }
-      solution.push(...path2)
-      path2.forEach(move => {
-        currentState = applyMove(currentState, move)
-      })
-    } else {
-      console.log(`Thistlethwaite: 阶段 1->2 完成，步数: ${path.length}`)
-      solution.push(...path)
-      path.forEach(move => {
-        currentState = applyMove(currentState, move)
-      })
     }
+    if (!path) {
+      console.error('Thistlethwaite: 阶段 1->2 失败')
+      return []
+    }
+    console.log(`Thistlethwaite: 阶段 1->2 完成，步数: ${path.length}`)
+    solution.push(...path)
+    path.forEach((move) => {
+      currentState = applyMove(currentState, move)
+    })
   }
   
   // 阶段 2 -> 3: 边块位置正确
