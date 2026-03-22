@@ -36,7 +36,7 @@ function App() {
   const [showCameraModal, setShowCameraModal] = useState(false)
 
   const handleScramble = () => {
-    if (isAnimating) return
+    if (isAnimating || animationState?.isAnimating) return
     const moves: Move[] = []
     const moveTypes: Move[] = ['R', "R'", 'L', "L'", 'U', "U'", 'D', "D'", 'F', "F'", 'B', "B'"]
     
@@ -57,7 +57,7 @@ function App() {
   }
 
   const handleSolve = async () => {
-    if (isAnimating) return
+    if (isAnimating || animationState?.isAnimating) return
     
     try {
       setIsAnimating(true)
@@ -144,13 +144,12 @@ function App() {
     }
   }, [animationState?.isAnimating])
   
-  const handleMove = (move: Move) => {
-    if (isAnimating || animationState?.isAnimating) return
-    
-    // 获取动画信息
+  /** 若当前可开始转动动画则返回 true；被求解或转动动画占用时返回 false */
+  const tryBeginMove = (move: Move): boolean => {
+    if (isAnimating || animationState?.isAnimating) return false
+
     const { axis, angle, affectedCubies, rotationCenter } = getAnimationInfo(move)
-    
-    // 启动动画
+
     setAnimationState({
       isAnimating: true,
       move,
@@ -160,24 +159,26 @@ function App() {
       affectedCubies,
       rotationCenter,
     })
+    return true
+  }
+
+  const handleMove = (move: Move) => {
+    tryBeginMove(move)
   }
 
   const handleStepForward = () => {
-    if (currentStep < solution.length) {
-      const move = solution[currentStep]
-      handleMove(move)
-      setCurrentStep(prev => prev + 1)
-    }
+    if (currentStep >= solution.length) return
+    const move = solution[currentStep]
+    if (!tryBeginMove(move)) return
+    setCurrentStep(prev => prev + 1)
   }
 
   const handleStepBackward = () => {
-    if (currentStep > 0) {
-      // 需要反向执行上一步
-      const move = solution[currentStep - 1]
-      const reversedMove = reverseMove(move)
-      handleMove(reversedMove)
-      setCurrentStep(prev => prev - 1)
-    }
+    if (currentStep <= 0) return
+    const move = solution[currentStep - 1]
+    const reversedMove = reverseMove(move)
+    if (!tryBeginMove(reversedMove)) return
+    setCurrentStep(prev => prev - 1)
   }
 
   const reverseMove = (move: Move): Move => {
@@ -239,6 +240,7 @@ function App() {
         onStepBackward={handleStepBackward}
         onCameraInput={handleCameraInput}
         isAnimating={isAnimating}
+        isCubeAnimating={!!animationState?.isAnimating}
         solution={solution}
         currentStep={currentStep}
         selectedAlgorithm={selectedAlgorithm}

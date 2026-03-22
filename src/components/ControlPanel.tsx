@@ -12,6 +12,8 @@ interface ControlPanelProps {
   onStepBackward: () => void
   onCameraInput: () => void
   isAnimating: boolean
+  /** 魔方转动动画进行中（与求解中的 isAnimating 区分） */
+  isCubeAnimating?: boolean
   solution: Move[]
   currentStep: number
   selectedAlgorithm: SolverAlgorithm
@@ -35,6 +37,7 @@ export default function ControlPanel({
   onStepBackward,
   onCameraInput,
   isAnimating,
+  isCubeAnimating = false,
   solution,
   currentStep,
   selectedAlgorithm,
@@ -43,6 +46,7 @@ export default function ControlPanel({
   onToggleCoordinate,
 }: ControlPanelProps) {
   const { t } = useTranslation()
+  const busy = isAnimating || isCubeAnimating
   const moves: Move[] = [
     'R', "R'", 'R2',
     'L', "L'", 'L2',
@@ -61,21 +65,21 @@ export default function ControlPanel({
           <button 
             className="btn btn-primary" 
             onClick={onScramble}
-            disabled={isAnimating}
+            disabled={busy}
           >
             {t('control.scramble')}
           </button>
           <button 
             className="btn btn-primary" 
             onClick={onSolve}
-            disabled={isAnimating}
+            disabled={busy}
           >
             {t('control.solve')}
           </button>
           <button 
             className="btn btn-secondary" 
             onClick={onCameraInput}
-            disabled={isAnimating}
+            disabled={busy}
             title={t('control.cameraTitle')}
           >
             📷 {t('control.cameraInput')}
@@ -88,7 +92,7 @@ export default function ControlPanel({
             id="algorithm-select"
             value={selectedAlgorithm}
             onChange={(e) => onAlgorithmChange(e.target.value as SolverAlgorithm)}
-            disabled={isAnimating}
+            disabled={busy}
             className="algorithm-select"
           >
             <option value="reverse-moves">{t('control.algoReverse')}</option>
@@ -107,7 +111,7 @@ export default function ControlPanel({
               key={move}
               className="btn btn-move"
               onClick={() => onMove(move)}
-              disabled={isAnimating}
+              disabled={busy}
             >
               {move}
             </button>
@@ -126,14 +130,14 @@ export default function ControlPanel({
             <button
               className="btn btn-secondary"
               onClick={onStepBackward}
-              disabled={isAnimating || currentStep === 0}
+              disabled={busy || currentStep === 0}
             >
               {t('control.prevStep')}
             </button>
             <button
               className="btn btn-secondary"
               onClick={onStepForward}
-              disabled={isAnimating || currentStep >= solution.length}
+              disabled={busy || currentStep >= solution.length}
             >
               {t('control.nextStep')}
             </button>
