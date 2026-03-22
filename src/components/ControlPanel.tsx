@@ -18,15 +18,6 @@ interface ControlPanelProps {
   currentStep: number
   selectedAlgorithm: SolverAlgorithm
   onAlgorithmChange: (algorithm: SolverAlgorithm) => void
-  showCoordinates: {
-    U: boolean
-    D: boolean
-    F: boolean
-    B: boolean
-    L: boolean
-    R: boolean
-  }
-  onToggleCoordinate: (face: 'U' | 'D' | 'F' | 'B' | 'L' | 'R') => void
 }
 
 export default function ControlPanel({
@@ -42,8 +33,6 @@ export default function ControlPanel({
   currentStep,
   selectedAlgorithm,
   onAlgorithmChange,
-  showCoordinates,
-  onToggleCoordinate,
 }: ControlPanelProps) {
   const { t } = useTranslation()
   const busy = isAnimating || isCubeAnimating
@@ -156,60 +145,6 @@ export default function ControlPanel({
           </div>
         </div>
       )}
-
-      <div className="panel-section">
-        <h3>{t('control.coords')}</h3>
-        <div className="coordinate-controls">
-          <label className="coordinate-switch">
-            <input
-              type="checkbox"
-              checked={showCoordinates.U}
-              onChange={() => onToggleCoordinate('U')}
-            />
-            <span>{t('control.coordU')}</span>
-          </label>
-          <label className="coordinate-switch">
-            <input
-              type="checkbox"
-              checked={showCoordinates.D}
-              onChange={() => onToggleCoordinate('D')}
-            />
-            <span>{t('control.coordD')}</span>
-          </label>
-          <label className="coordinate-switch">
-            <input
-              type="checkbox"
-              checked={showCoordinates.F}
-              onChange={() => onToggleCoordinate('F')}
-            />
-            <span>{t('control.coordF')}</span>
-          </label>
-          <label className="coordinate-switch">
-            <input
-              type="checkbox"
-              checked={showCoordinates.B}
-              onChange={() => onToggleCoordinate('B')}
-            />
-            <span>{t('control.coordB')}</span>
-          </label>
-          <label className="coordinate-switch">
-            <input
-              type="checkbox"
-              checked={showCoordinates.L}
-              onChange={() => onToggleCoordinate('L')}
-            />
-            <span>{t('control.coordL')}</span>
-          </label>
-          <label className="coordinate-switch">
-            <input
-              type="checkbox"
-              checked={showCoordinates.R}
-              onChange={() => onToggleCoordinate('R')}
-            />
-            <span>{t('control.coordR')}</span>
-          </label>
-        </div>
-      </div>
 
       <div className="panel-section">
         <h3>{t('control.tips')}</h3>

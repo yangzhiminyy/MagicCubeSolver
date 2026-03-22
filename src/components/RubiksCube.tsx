@@ -8,17 +8,9 @@ import Cubie from './Cubie'
 interface RubiksCubeProps {
   cubeState: CubeState
   animationState: AnimationState | null
-  showCoordinates: {
-    U: boolean
-    D: boolean
-    F: boolean
-    B: boolean
-    L: boolean
-    R: boolean
-  }
 }
 
-export default function RubiksCube({ cubeState, animationState, showCoordinates }: RubiksCubeProps) {
+export default function RubiksCube({ cubeState, animationState }: RubiksCubeProps) {
   const groupRef = useRef<THREE.Group>(null)
   const cubieRefs = useRef<Map<string, THREE.Group>>(new Map())
   
@@ -182,16 +174,6 @@ export default function RubiksCube({ cubeState, animationState, showCoordinates 
           right,
           left,
         }
-        
-        // 计算每个面的坐标标记
-        const coordinateLabels = {
-          front: z === 1 ? `F[${1 - y}][${x + 1}]` : null,
-          back: z === -1 ? `B[${1 - y}][${1 - x}]` : null,
-          top: y === 1 ? `U[${z + 1}][${x + 1}]` : null,
-          bottom: y === -1 ? `D[${1 - z}][${x + 1}]` : null,
-          right: x === 1 ? `R[${1 - y}][${1 - z}]` : null,
-          left: x === -1 ? `L[${1 - y}][${z + 1}]` : null,
-        }
 
         const cubieKey = `${x}-${y}-${z}`
         // 计算初始位置（动画期间可能会改变）
@@ -213,8 +195,6 @@ export default function RubiksCube({ cubeState, animationState, showCoordinates 
             <Cubie
               position={[0, 0, 0]} // 相对于 group 的位置为 0，实际位置由 group 控制
               colors={positions}
-              coordinateLabels={coordinateLabels}
-              showCoordinates={showCoordinates}
               size={size}
             />
           </group>

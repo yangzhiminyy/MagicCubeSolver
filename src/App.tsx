@@ -25,14 +25,6 @@ function App() {
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<SolverAlgorithm>('reverse-moves') // 默认使用反向移动
   const [animationState, setAnimationState] = useState<AnimationState | null>(null)
   const animationStartTimeRef = useRef<number | null>(null)
-  const [showCoordinates, setShowCoordinates] = useState({
-    U: false,
-    D: false,
-    F: false,
-    B: false,
-    L: false,
-    R: false,
-  })
   const [showCameraModal, setShowCameraModal] = useState(false)
 
   const handleScramble = () => {
@@ -228,7 +220,7 @@ function App() {
           <ambientLight intensity={0.5} />
           <directionalLight position={[10, 10, 5]} intensity={1} />
           <pointLight position={[-10, -10, -10]} intensity={0.5} />
-          <RubiksCube cubeState={cubeState} animationState={animationState} showCoordinates={showCoordinates} />
+          <RubiksCube cubeState={cubeState} animationState={animationState} />
           <OrbitControls enablePan={false} minDistance={3} maxDistance={15} />
         </Canvas>
       </div>
@@ -245,13 +237,6 @@ function App() {
         currentStep={currentStep}
         selectedAlgorithm={selectedAlgorithm}
         onAlgorithmChange={setSelectedAlgorithm}
-        showCoordinates={showCoordinates}
-        onToggleCoordinate={(face) => {
-          setShowCoordinates(prev => ({
-            ...prev,
-            [face]: !prev[face as keyof typeof prev]
-          }))
-        }}
       />
       
       <CameraInputModal

@@ -11,7 +11,6 @@ An online Rubik's Cube solver built with React and Three.js, featuring 3D visual
 - 🤖 **Multiple Solving Algorithms**: Support for various solving algorithms
 - 🎬 **Smooth Animations**: 3D rotation animations for all moves
 - 📊 **Step-by-step Playback**: View solution steps and replay them step by step
-- 🐛 **Debug Mode**: Toggle coordinate display for each face
 - 📷 **Camera Input**: Capture cube state using camera with color recognition
 - 🎨 **Manual Color Input**: Intuitive 6-face unfolded layout with simple color picker
 
@@ -30,7 +29,7 @@ The application is built with a component-based architecture:
 
 - **`App.tsx`**: Main application component managing global state and event handlers
 - **`RubiksCube.tsx`**: 3D cube rendering component with animation support
-- **`Cubie.tsx`**: Individual cubie component with color and coordinate display
+- **`Cubie.tsx`**: Individual cubie component (face colors)
 - **`ControlPanel.tsx`**: UI controls for scrambling, solving, and manual moves
 - **`CameraInputModal.tsx`**: Camera-based cube state input with color recognition
 - **`CubeNetInput.tsx`**: Unfolded 6-face input layout for manual color adjustment
@@ -186,7 +185,6 @@ See [`doc/VITE_DEV_TROUBLESHOOTING.md`](./doc/VITE_DEV_TROUBLESHOOTING.md) for d
    - Select an algorithm from the dropdown
    - Click "Solve" button
    - Use "Previous Step"/"Next Step" buttons to navigate through solution
-7. **Debug Mode**: Toggle coordinate display for each face using the checkboxes
 
 ## Project Structure
 
@@ -239,7 +237,6 @@ MIT
 - 🤖 **多种求解算法**：支持多种求解算法
 - 🎬 **平滑动画**：所有移动都有3D旋转动画
 - 📊 **步骤回放**：查看求解步骤并逐步回放
-- 🐛 **调试模式**：可以切换显示每个面的坐标
 - 📷 **摄像头录入**：使用摄像头识别魔方颜色状态
 - 🎨 **手动颜色录入**：直观的展开图式六面录入界面，配备简洁的颜色选择器
 
@@ -258,7 +255,7 @@ MIT
 
 - **`App.tsx`**：主应用组件，管理全局状态和事件处理
 - **`RubiksCube.tsx`**：3D魔方渲染组件，支持动画
-- **`Cubie.tsx`**：单个小块组件，支持颜色和坐标显示
+- **`Cubie.tsx`**：单个小块组件（各面颜色）
 - **`ControlPanel.tsx`**：打乱、求解和手动操作的UI控制面板
 
 ### 核心工具
@@ -408,7 +405,6 @@ npm run build
    - 从下拉菜单中选择算法
    - 点击"求解"按钮
    - 使用"上一步"/"下一步"按钮逐步查看求解过程
-7. **调试模式**：使用复选框切换显示每个面的坐标
 
 ## 项目结构
 
