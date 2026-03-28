@@ -16,7 +16,7 @@
 说明：
 
 - 实际执行的是 **`src/utils/thistlethwaite.ts`** 中的自研四阶段 + BFS。
-- `cubeSolver.ts` 里另有一个 **`solveByThistlethwaite(cubestring)`**（注释写 cube-solver / Thistlethwaite），内部却调用 `cube-solver` 的 **`kociemba`**，且 **未被** `solveCube` 的分支使用，属于死代码/误命名，容易误导阅读者。
+- `cubeSolver.ts` 中 **`solveByCubeSolverKociemba(cubestring)`**（原误名 `solveByThistlethwaite`）走 `cube-solver` 的 **Kociemba**，与自研 `thistlethwaite.ts` 的 `solveByThistlethwaite(cubie)` 不同；`solveCube` 的「Thistlethwaite」选项仅使用后者。
 
 ---
 
@@ -137,7 +137,7 @@
 
 ### 5.3 工程清理
 
-- 删除或重命名 `cubeSolver.ts` 中未使用的 `solveByThistlethwaite(cubestring)`，或改为真正调用 Thistlethwaite/Kociemba 并统一入口，避免「同名不同义」。
+- 已重命名：`cubeSolver.ts` 中 `solveByCubeSolverKociemba(cubestring)`（避免与自研 Thistlethwaite 同名）。
 
 ### 5.4 产品侧建议
 
@@ -153,7 +153,7 @@
 | 跳过 G0→G1 | 高 | 与标准算法前提不符 |
 | G1→G2 目标用角块位置代替朝向/子群条件 | 高 | 目标可能不可达或极难 |
 | 深度/节点/超时限制 | 中 | 在目标正确时可调参 |
-| 未使用的 `solveByThistlethwaite(cubestring)` | 低 | 维护与理解成本 |
+| 与自研同名的 cube-solver 入口（已改为 `solveByCubeSolverKociemba`） | 低 | 已降低混淆 |
 
 **结论**：当前「算不出解」的首要技术原因是 **`stateKey` 设计错误导致搜索被错误剪枝**；其次才是阶段定义与经典 Thistlethwaite 不一致。修复状态编码后，再根据是否需要「真·Thistlethwaite」决定阶段目标的完整重写或产品上的算法更名。
 

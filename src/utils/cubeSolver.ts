@@ -6,6 +6,10 @@ import {
   manhattanSums,
 } from './idaStarHelpers'
 import { solveByThistlethwaite as thistlethwaiteSolve } from './thistlethwaite'
+import {
+  cubieFromCubestring,
+  cubieBasedStateToCanonicalCubestring,
+} from './cubestringCodec'
 
 // 求解算法类型
 export type SolverAlgorithm = 'kociemba' | 'ida-star' | 'reverse-moves' | 'thistlethwaite'
@@ -405,32 +409,30 @@ export async function solveByIDAStar(
 }
 
 /**
- * 使用 cube-solver 库的 Thistlethwaite 算法
- * 注意：cube-solver 可能不支持 thistlethwaite，这里作为备选方案
+ * 使用 npm `cube-solver` 包，按 **Kociemba** 策略从 cubestring 求解（与 UI「自研 Thistlethwaite」无关）。
+ * 曾误用函数名 `solveByThistlethwaite`，易引起混淆。
  */
-export async function solveByThistlethwaite(cubestring: string): Promise<Move[]> {
+export async function solveByCubeSolverKociemba(cubestring: string): Promise<Move[]> {
   try {
     const { solve } = await import('cube-solver')
-    // 尝试使用 kociemba，因为 cube-solver 可能只支持 kociemba
     const solutionString = solve(cubestring, 'kociemba')
-    
+
     if (!solutionString || solutionString.trim() === '') {
       return []
     }
-    
-    // 解析移动序列
+
     const moves: Move[] = []
-    const moveStrings = solutionString.trim().split(/\s+/).filter(s => s.length > 0)
-    
+    const moveStrings = solutionString.trim().split(/\s+/).filter((s) => s.length > 0)
+
     for (const moveStr of moveStrings) {
       if (moveStr.match(/^[RLUDFB]'?2?$/)) {
         moves.push(moveStr as Move)
       }
     }
-    
+
     return moves
   } catch (error) {
-    console.error('Thistlethwaite 求解失败:', error)
+    console.error('cube-solver（Kociemba）求解失败:', error)
     return []
   }
 }
@@ -452,14 +454,20 @@ export async function solveCube(
         }
         return []
         
-      case 'ida-star':
-        // IDA* 算法（较慢但能找到最优解；异步 yield，避免阻塞 UI）
-        return await solveByIDAStar(cubieBasedState, 20)
-        
+      case 'ida-star': {
+        // 经规范 cubestring 再转 cubie，与测试/文档契约一致（暴露编解码问题）
+        const cubie = cubieFromCubestring(
+          cubieBasedStateToCanonicalCubestring(cubieBasedState)
+        )
+        return await solveByIDAStar(cubie, 20)
+      }
+
       case 'thistlethwaite':
-        // Thistlethwaite 算法（四阶段算法，异步版本）
         try {
-          return await thistlethwaiteSolve(cubieBasedState, 5) // 进一步减少深度
+          const cubie = cubieFromCubestring(
+            cubieBasedStateToCanonicalCubestring(cubieBasedState)
+          )
+          return await thistlethwaiteSolve(cubie, 5)
         } catch (error) {
           // 如果 Thistlethwaite 失败，提示用户使用其他算法
           console.error('Thistlethwaite 算法失败:', error)

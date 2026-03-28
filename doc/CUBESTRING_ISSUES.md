@@ -68,5 +68,6 @@
 ## 下一步
 
 1. 深入研究 Kociemba 的 cubestring 格式规范
-2. 创建一个测试用例，从已知有效的 cubestring 反推正确的读取顺序
-3. 修复 `cubeStateToCubestring` 函数中的读取顺序
+2. 单一契约模块：`src/utils/cubestringCodec.ts`（`parseCubestring` / `cubieBasedStateToCanonicalCubestring` / `applyMovesToCubestring`）；与 `cubeConverter.cubeStateToCubestring` 对齐。
+3. **回归**：`src/utils/cubestringCodec.test.ts`（层级 0）— 已解串往返、基本转动恒等；单步 R 金样本可在此补充为 `applyMovesToCubestring(SOLVED, ['R'])` 与 Kociemba 互测。
+4. 若 Kociemba 仍报「无效」，再对照官方 U1–B9 读序逐面排查 `cubeStateToCubestring`。

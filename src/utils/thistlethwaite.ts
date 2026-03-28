@@ -580,7 +580,8 @@ async function searchInGroup(
   isGoal: (state: CubieBasedCubeState) => boolean,
   maxDepth: number = 6, // 减少默认深度以提高性能
   onProgress?: (depth: number, queueSize: number) => void,
-  timeout: number = 30000 // 30秒超时
+  timeout: number = 30000, // 30秒超时
+  maxNodesLimit: number = 120_000
 ): Promise<Move[] | null> {
   // 检查是否已达到目标
   if (isGoal(state)) {
@@ -596,7 +597,6 @@ async function searchInGroup(
   /** 与 IDA* 阶段搜索类似，每扩展若干结点让出一次（大批次内仍可能阻塞，故配合 BATCH 尾部 yield） */
   const YIELD_EVERY_NODES = 2500
   let totalProcessed = 0
-  const MAX_NODES = 120_000 // 限制最大搜索节点数（stateKey 正确后需更大预算）
 
   for (let depth = 0; depth < maxDepth && queue.length > 0; depth++) {
     const levelSize = queue.length
@@ -608,8 +608,8 @@ async function searchInGroup(
         return null
       }
 
-      if (totalProcessed > MAX_NODES) {
-        console.warn(`达到最大节点数限制（${MAX_NODES}），停止搜索`)
+      if (totalProcessed > maxNodesLimit) {
+        console.warn(`达到最大节点数限制（${maxNodesLimit}），停止搜索`)
         return null
       }
 
@@ -667,6 +667,14 @@ async function searchInGroup(
   return null
 }
 
+/** 阶段内 BFS（searchInGroup）的时间与结点上限；用于测试或难例时放宽，默认与原先常量一致 */
+export type ThistlethwaiteSearchTuning = {
+  bfsMaxNodes?: number
+  stage23TimeoutMs?: number
+  stage34TimeoutFirstMs?: number
+  stage34TimeoutRetryMs?: number
+}
+
 /**
  * Thistlethwaite 算法求解（异步版本）
  * 四阶段算法，逐步简化魔方状态
@@ -674,8 +682,13 @@ async function searchInGroup(
 export async function solveByThistlethwaite(
   cubieState: CubieBasedCubeState,
   maxDepthPerStage: number = 6, // 减少默认深度
-  onProgress?: (stage: number, depth: number, queueSize: number) => void
+  onProgress?: (stage: number, depth: number, queueSize: number) => void,
+  searchTuning?: ThistlethwaiteSearchTuning
 ): Promise<Move[]> {
+  const bfsMax = searchTuning?.bfsMaxNodes ?? 120_000
+  const t23 = searchTuning?.stage23TimeoutMs ?? 30_000
+  const t34a = searchTuning?.stage34TimeoutFirstMs ?? 60_000
+  const t34b = searchTuning?.stage34TimeoutRetryMs ?? 120_000
   // 检查是否已解决
   if (isInG0(cubieState)) {
     return []
@@ -776,7 +789,8 @@ export async function solveByThistlethwaite(
           console.log(`阶段 2->3: 搜索深度 ${depth}, 队列大小: ${queueSize}`)
         }
       },
-      30000 // 30秒超时
+      t23,
+      bfsMax
     )
     if (!path) {
       console.warn('Thistlethwaite: 阶段 2->3 超时或未找到解')
@@ -812,7 +826,8 @@ export async function solveByThistlethwaite(
           console.log(`阶段 3->4: 搜索深度 ${depth}, 队列大小: ${queueSize}`)
         }
       },
-      60000 // 60秒超时
+      t34a,
+      bfsMax
     )
     if (!path) {
       console.warn('Thistlethwaite: 无法完成阶段 3->4，尝试增加深度')
@@ -828,7 +843,8 @@ export async function solveByThistlethwaite(
             console.log(`阶段 3->4 (重试): 搜索深度 ${depth}, 队列大小: ${queueSize}`)
           }
         },
-        120000 // 120秒超时
+        t34b,
+        bfsMax
       )
       if (!path2) {
         console.warn('Thistlethwaite: 阶段 3->4 失败')

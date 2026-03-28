@@ -47,6 +47,18 @@ The application is built with a component-based architecture:
 - **`cameraColorRecognition.ts`**: Camera-based color recognition utilities
 - **`cubeInputConverter.ts`**: Conversion between input state and cube state
 - **`faceColorsToCubieBased.ts`**: Conversion from facelet colors to cubie-based state
+- **`cubestringCodec.ts`**: Single place for Kociemba cubestring (54 chars, URFDLB): `parseCubestring` / `serializeCubeState`, `cubieFromCubestring`, `applyMovesToCubestring`, `cubieBasedStateToCanonicalCubestring`
+- **`solverFromCubestring.ts`**: Thin wrappers `solveIDAStarFromCubestring` / `solveThistlethwaiteFromCubestring` for tests and tooling
+
+### Algorithm verification (cubestring + unit tests)
+
+Solver outputs can be checked **without the 3D view**: apply the returned `Move[]` to the starting cubestring and compare to the solved string (`UUUU…BBBB`). **Ground truth for correctness is the codec + tests**, with 3D as optional confirmation.
+
+- **Tier 0** (fast): `src/utils/cubestringCodec.test.ts` — parse/serialize roundtrip and move identities.
+- **Tier 1–3** (slow): `src/utils/solverFromCubestring.test.ts` — IDA* / Thistlethwaite restore checks; the heavy block is **`describe.skip` by default**; remove `.skip` when you want to run them (`npm run test:run`).
+- Scripts: `npm run test` (watch), `npm run test:run` (CI-style single run).
+
+Design notes: [`doc/SOLVER_REFACTOR_AND_TEST_PLAN.md`](./doc/SOLVER_REFACTOR_AND_TEST_PLAN.md).
 
 ## Supported Algorithms
 
