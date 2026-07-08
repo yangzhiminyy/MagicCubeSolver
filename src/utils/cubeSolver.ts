@@ -80,18 +80,18 @@ export const IDA_STAR_DEFAULT_MAX_WALL_MS = 300_000
 
 export const IDA_STAR_MAX_WALL_MS_STORAGE_KEY = 'IDA_STAR_MAX_WALL_MS'
 
-const THISTLETHWAITE_QUICK_TUNING: ThistlethwaiteSearchTuning = {
-  bfsMaxNodes: 60_000,
-  phase01TimeoutMs: 3_000,
-  phase01MaxNodes: 120_000,
+const THISTLETHWAITE_UI_TUNING: ThistlethwaiteSearchTuning = {
+  bfsMaxNodes: 2_000_000,
+  phase01TimeoutMs: 20_000,
+  phase01MaxNodes: 1_000_000,
   phase01RetryTimeoutMs: 0,
   phase01RetryMaxNodes: 0,
-  phase12TimeoutMs: 3_000,
-  phase12MaxNodes: 120_000,
+  phase12TimeoutMs: 30_000,
+  phase12MaxNodes: 1_500_000,
   phase12RetryTimeoutMs: 0,
   phase12RetryMaxNodes: 0,
-  stage23TimeoutMs: 3_000,
-  stage34TimeoutFirstMs: 3_000,
+  stage23TimeoutMs: 45_000,
+  stage34TimeoutFirstMs: 30_000,
   stage34TimeoutRetryMs: 0,
 }
 
@@ -513,9 +513,9 @@ export async function solveCube(
           try {
             const thistleSolution = await thistlethwaiteSolve(
               cubie,
-              5,
+              8,
               undefined,
-              THISTLETHWAITE_QUICK_TUNING
+              THISTLETHWAITE_UI_TUNING
             )
             if (
               thistleSolution.length > 0 &&
@@ -523,32 +523,11 @@ export async function solveCube(
             ) {
               return thistleSolution
             }
-            if (thistleSolution.length > 0) {
-              console.warn(
-                'Thistlethwaite 自研搜索返回了步骤，但执行后未还原，改用兜底求解。',
-                thistleSolution
-              )
-            }
+            throw new Error('Thistlethwaite 自研搜索没有返回可还原当前状态的步骤。')
           } catch (error) {
-            console.warn('Thistlethwaite 自研搜索未在快限内完成，改用兜底求解:', error)
+            console.error('Thistlethwaite 算法失败:', error)
+            throw error
           }
-
-          if (movesToState && movesToState.length > 0) {
-            const reverseSolution = solveByReverseMoves(movesToState)
-            if (solutionRestoresState(cubie, reverseSolution)) {
-              console.warn('Thistlethwaite 当前实现未能完成；已使用已知打乱序列的反向解兜底。')
-              return reverseSolution
-            }
-            console.warn('已知打乱序列的反向解未通过还原校验，继续尝试 Kociemba 兜底。')
-          }
-
-          console.warn('Thistlethwaite 当前实现未能完成；改用 Kociemba 兜底。')
-          const { solveCube: kociembaSolve } = await import('./cubeConverter')
-          const fallbackSolution = await kociembaSolve(cubie)
-          if (fallbackSolution.length > 0 && solutionRestoresState(cubie, fallbackSolution)) {
-            return fallbackSolution
-          }
-          throw new Error('Thistlethwaite 自研搜索未完成，且兜底求解也未能还原当前状态。')
         }
         
       case 'kociemba':

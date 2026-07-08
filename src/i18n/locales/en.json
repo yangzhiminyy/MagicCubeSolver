@@ -12,7 +12,7 @@
     "algorithmLabel": "Solver:",
     "algoReverse": "Reverse moves (fastest; needs scramble history)",
     "algoKociemba": "Kociemba (fast, two-phase)",
-    "algoThistle": "Thistlethwaite (four-phase) 🚧 WIP",
+    "algoThistle": "Thistlethwaite (four-phase)",
     "algoIda": "IDA* (slower, optimal) 🚧 WIP",
     "manualOps": "Manual moves",
     "solutionSteps": "Solution",

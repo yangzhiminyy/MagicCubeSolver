@@ -7,11 +7,16 @@ import {
   cubieFromCubestring,
   cubieBasedStateToCanonicalCubestring,
 } from './cubestringCodec'
-import { solveByIDAStar, solveCube as solveCubeByDispatcher } from './cubeSolver'
+import {
+  solveByIDAStar,
+  solveByReverseMoves,
+  solveCube as solveCubeByDispatcher,
+} from './cubeSolver'
 import { kociembaStringToMoves, solveCube as solveCubeByKociemba } from './cubeConverter'
 import { applyMove as applyCubieMove, createSolvedCubieBasedCube } from './cubieBasedCubeLogic'
 
 const BASIC_MOVES = ['F', 'B', 'L', 'R', 'U', 'D'] as const
+const APP_SCRAMBLE_MOVES: Move[] = ['R', "R'", 'L', "L'", 'U', "U'", 'D', "D'", 'F', "F'", 'B', "B'"]
 
 function kociembaCubeAfter(move: (typeof BASIC_MOVES)[number]): string {
   const cube = new Cube()
@@ -30,6 +35,16 @@ function applyCubieMovesToCubestring(moves: readonly Move[]): string {
 
 function normalizeForDeepEqual<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
+}
+
+function deterministicAppScramble(seed: number, length = 25): Move[] {
+  let x = seed >>> 0
+  const moves: Move[] = []
+  for (let i = 0; i < length; i++) {
+    x = (1664525 * x + 1013904223) >>> 0
+    moves.push(APP_SCRAMBLE_MOVES[x % APP_SCRAMBLE_MOVES.length])
+  }
+  return moves
 }
 
 async function expectCubieSolverRestores(
@@ -137,7 +152,7 @@ describe('solver validation diagnostics', () => {
   )
 
   it(
-    'cubeSolver dispatcher Thistlethwaite restores an app-style 25-turn scramble via fallback',
+    'cubeSolver dispatcher Thistlethwaite restores an app-style 25-turn scramble without reverse fallback',
     async () => {
       const scramble: Move[] = [
         'R', "U'", 'L', 'F', "B'", 'D',
@@ -146,11 +161,34 @@ describe('solver validation diagnostics', () => {
         "F'", 'R', "L'", 'U', "D'", 'B', "R'",
       ]
 
-      await expectCubieSolverRestores(scramble, (start) =>
-        solveCubeByDispatcher(start, 'thistlethwaite', scramble)
-      )
+      let start = createSolvedCubieBasedCube()
+      for (const move of scramble) {
+        start = applyCubieMove(start, move)
+      }
+
+      const solution = await solveCubeByDispatcher(start, 'thistlethwaite', scramble)
+      expect(solution).not.toEqual(solveByReverseMoves(scramble))
+
+      let restored = start
+      for (const move of solution) {
+        restored = applyCubieMove(restored, move)
+      }
+      expect(cubieBasedStateToCanonicalCubestring(restored)).toBe(SOLVED_CUBESTRING)
     },
     20_000
+  )
+
+  it(
+    'cubeSolver dispatcher Thistlethwaite restores deterministic UI random scrambles',
+    async () => {
+      for (const seed of [1, 7, 42]) {
+        const scramble = deterministicAppScramble(seed)
+        await expectCubieSolverRestores(scramble, (start) =>
+          solveCubeByDispatcher(start, 'thistlethwaite', scramble)
+        )
+      }
+    },
+    60_000
   )
 
   it('IDA* restores a two-turn cubestring state under local move semantics', async () => {
