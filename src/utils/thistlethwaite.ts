@@ -670,6 +670,14 @@ async function searchInGroup(
 /** 阶段内 BFS（searchInGroup）的时间与结点上限；用于测试或难例时放宽，默认与原先常量一致 */
 export type ThistlethwaiteSearchTuning = {
   bfsMaxNodes?: number
+  phase01TimeoutMs?: number
+  phase01MaxNodes?: number
+  phase01RetryTimeoutMs?: number
+  phase01RetryMaxNodes?: number
+  phase12TimeoutMs?: number
+  phase12MaxNodes?: number
+  phase12RetryTimeoutMs?: number
+  phase12RetryMaxNodes?: number
   stage23TimeoutMs?: number
   stage34TimeoutFirstMs?: number
   stage34TimeoutRetryMs?: number
@@ -686,6 +694,14 @@ export async function solveByThistlethwaite(
   searchTuning?: ThistlethwaiteSearchTuning
 ): Promise<Move[]> {
   const bfsMax = searchTuning?.bfsMaxNodes ?? 120_000
+  const t01 = searchTuning?.phase01TimeoutMs ?? 120_000
+  const n01 = searchTuning?.phase01MaxNodes ?? 2_000_000
+  const t01b = searchTuning?.phase01RetryTimeoutMs ?? 240_000
+  const n01b = searchTuning?.phase01RetryMaxNodes ?? 5_000_000
+  const t12 = searchTuning?.phase12TimeoutMs ?? 120_000
+  const n12 = searchTuning?.phase12MaxNodes ?? 2_000_000
+  const t12b = searchTuning?.phase12RetryTimeoutMs ?? 240_000
+  const n12b = searchTuning?.phase12RetryMaxNodes ?? 5_000_000
   const t23 = searchTuning?.stage23TimeoutMs ?? 30_000
   const t34a = searchTuning?.stage34TimeoutFirstMs ?? 60_000
   const t34b = searchTuning?.stage34TimeoutRetryMs ?? 120_000
@@ -709,18 +725,18 @@ export async function solveByThistlethwaite(
         currentState,
         d + 12,
         d + 22,
-        120_000,
-        2_000_000,
+        t01,
+        n01,
         2500,
         (round, thr) => onProgress?.(0, round, thr)
       )
-      if (!path0) {
+      if (!path0 && t01b > 0 && n01b > 0) {
         path0 = await searchG0ToG1IDA(
           currentState,
           d + 18,
           d + 30,
-          240_000,
-          5_000_000,
+          t01b,
+          n01b,
           5000,
           (round, thr) => onProgress?.(0, round, thr)
         )
@@ -745,18 +761,18 @@ export async function solveByThistlethwaite(
       currentState,
       d + 12,
       d + 22,
-      120_000,
-      2_000_000,
+      t12,
+      n12,
       2500,
       (round, thr) => onProgress?.(1, round, thr)
     )
-    if (!path) {
+    if (!path && t12b > 0 && n12b > 0) {
       path = await searchG1ToG2IDA(
         currentState,
         d + 18,
         d + 30,
-        240_000,
-        5_000_000,
+        t12b,
+        n12b,
         5000,
         (round, thr) => onProgress?.(1, round, thr)
       )

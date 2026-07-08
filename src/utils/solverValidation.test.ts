@@ -136,6 +136,23 @@ describe('solver validation diagnostics', () => {
     20_000
   )
 
+  it(
+    'cubeSolver dispatcher Thistlethwaite restores an app-style 25-turn scramble via fallback',
+    async () => {
+      const scramble: Move[] = [
+        'R', "U'", 'L', 'F', "B'", 'D',
+        "R'", 'U', 'F', "L'", 'B', "D'",
+        'R', 'F', "U'", 'L', "B'", 'D',
+        "F'", 'R', "L'", 'U', "D'", 'B', "R'",
+      ]
+
+      await expectCubieSolverRestores(scramble, (start) =>
+        solveCubeByDispatcher(start, 'thistlethwaite', scramble)
+      )
+    },
+    20_000
+  )
+
   it('IDA* restores a two-turn cubestring state under local move semantics', async () => {
     const scramble: Move[] = ['R', 'U']
     const start = applyMovesToCubestring(SOLVED_CUBESTRING, scramble)

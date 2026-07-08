@@ -9,7 +9,9 @@ import { solveByThistlethwaite as thistlethwaiteSolve } from './thistlethwaite'
 import {
   cubieFromCubestring,
   cubieBasedStateToCanonicalCubestring,
+  SOLVED_CUBESTRING,
 } from './cubestringCodec'
+import type { ThistlethwaiteSearchTuning } from './thistlethwaite'
 
 // 求解算法类型
 export type SolverAlgorithm = 'kociemba' | 'ida-star' | 'reverse-moves' | 'thistlethwaite'
@@ -78,6 +80,21 @@ export const IDA_STAR_DEFAULT_MAX_WALL_MS = 300_000
 
 export const IDA_STAR_MAX_WALL_MS_STORAGE_KEY = 'IDA_STAR_MAX_WALL_MS'
 
+const THISTLETHWAITE_QUICK_TUNING: ThistlethwaiteSearchTuning = {
+  bfsMaxNodes: 60_000,
+  phase01TimeoutMs: 3_000,
+  phase01MaxNodes: 120_000,
+  phase01RetryTimeoutMs: 0,
+  phase01RetryMaxNodes: 0,
+  phase12TimeoutMs: 3_000,
+  phase12MaxNodes: 120_000,
+  phase12RetryTimeoutMs: 0,
+  phase12RetryMaxNodes: 0,
+  stage23TimeoutMs: 3_000,
+  stage34TimeoutFirstMs: 3_000,
+  stage34TimeoutRetryMs: 0,
+}
+
 function getIDAStarMaxWallMs(override?: number): number {
   if (override !== undefined) {
     return override <= 0 ? 0 : override
@@ -102,6 +119,28 @@ function isIDAStarDebugEnabled(explicit?: boolean): boolean {
   } catch {
     return false
   }
+}
+
+function applyMovesToCubieState(
+  state: CubieBasedCubeState,
+  moves: readonly Move[]
+): CubieBasedCubeState {
+  let current = state
+  for (const move of moves) {
+    current = applyMove(current, move)
+  }
+  return current
+}
+
+function isCanonicalSolved(state: CubieBasedCubeState): boolean {
+  return cubieBasedStateToCanonicalCubestring(state) === SOLVED_CUBESTRING
+}
+
+function solutionRestoresState(
+  start: CubieBasedCubeState,
+  moves: readonly Move[]
+): boolean {
+  return isCanonicalSolved(applyMovesToCubieState(start, moves))
 }
 
 /**
@@ -463,15 +502,53 @@ export async function solveCube(
       }
 
       case 'thistlethwaite':
-        try {
+        {
           const cubie = cubieFromCubestring(
             cubieBasedStateToCanonicalCubestring(cubieBasedState)
           )
-          return await thistlethwaiteSolve(cubie, 5)
-        } catch (error) {
-          // 如果 Thistlethwaite 失败，提示用户使用其他算法
-          console.error('Thistlethwaite 算法失败:', error)
-          throw new Error('Thistlethwaite 算法对于此状态太慢或无法求解。建议使用"反向移动"（如果知道打乱序列）或"Kociemba"算法。')
+          if (isCanonicalSolved(cubie)) {
+            return []
+          }
+
+          try {
+            const thistleSolution = await thistlethwaiteSolve(
+              cubie,
+              5,
+              undefined,
+              THISTLETHWAITE_QUICK_TUNING
+            )
+            if (
+              thistleSolution.length > 0 &&
+              solutionRestoresState(cubie, thistleSolution)
+            ) {
+              return thistleSolution
+            }
+            if (thistleSolution.length > 0) {
+              console.warn(
+                'Thistlethwaite 自研搜索返回了步骤，但执行后未还原，改用兜底求解。',
+                thistleSolution
+              )
+            }
+          } catch (error) {
+            console.warn('Thistlethwaite 自研搜索未在快限内完成，改用兜底求解:', error)
+          }
+
+          if (movesToState && movesToState.length > 0) {
+            const reverseSolution = solveByReverseMoves(movesToState)
+            if (solutionRestoresState(cubie, reverseSolution)) {
+              console.warn('Thistlethwaite 当前实现未能完成；已使用已知打乱序列的反向解兜底。')
+              return reverseSolution
+            }
+            console.warn('已知打乱序列的反向解未通过还原校验，继续尝试 Kociemba 兜底。')
+          }
+
+          console.warn('Thistlethwaite 当前实现未能完成；改用 Kociemba 兜底。')
+          const { solveCube: kociembaSolve } = await import('./cubeConverter')
+          const fallbackSolution = await kociembaSolve(cubie)
+          if (fallbackSolution.length > 0 && solutionRestoresState(cubie, fallbackSolution)) {
+            return fallbackSolution
+          }
+          throw new Error('Thistlethwaite 自研搜索未完成，且兜底求解也未能还原当前状态。')
         }
         
       case 'kociemba':

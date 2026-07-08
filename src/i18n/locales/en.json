@@ -54,7 +54,7 @@
     }
   },
   "app": {
-    "solveEmptyFail": "Solve failed: could not build a solvable pattern from this state.\n\nThis may be because CubeState → KPattern conversion is not fully implemented yet.",
+    "solveEmptyFail": "The solver did not return executable moves.\n\nIf the cube is already solved, this is normal; otherwise switch to Kociemba or check the console.",
     "solveError": "Solving is unavailable. See the console for details.\n\nError: {{message}}",
     "cameraProcessError": "Failed to apply camera input: {{message}}"
   },
