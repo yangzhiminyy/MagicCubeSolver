@@ -7,6 +7,77 @@
 import { CubeState, CubieBasedCubeState, FaceColor, CornerCubieId, EdgeCubieId, FaceCubieId, CubieColors } from './cubeTypes'
 import { createSolvedCubieBasedCube } from './cubieBasedCubeLogic'
 
+const FACE_ORDER = ['U', 'D', 'F', 'B', 'L', 'R'] as const
+const STICKER_COLORS: FaceColor[] = ['white', 'yellow', 'red', 'orange', 'green', 'blue']
+const EXPECTED_CENTER_COLORS: Record<(typeof FACE_ORDER)[number], FaceColor> = {
+  U: 'white',
+  D: 'yellow',
+  F: 'red',
+  B: 'orange',
+  L: 'green',
+  R: 'blue',
+}
+
+function createBlackCubieColors(): CubieColors {
+  return {
+    upper: 'black',
+    down: 'black',
+    front: 'black',
+    back: 'black',
+    left: 'black',
+    right: 'black',
+  }
+}
+
+function validateCubeState(cubeState: CubeState): void {
+  const counts = new Map<FaceColor, number>()
+  for (const color of STICKER_COLORS) {
+    counts.set(color, 0)
+  }
+
+  for (const face of FACE_ORDER) {
+    const grid = cubeState[face]
+    if (!Array.isArray(grid) || grid.length !== 3 || grid.some(row => !Array.isArray(row) || row.length !== 3)) {
+      throw new Error(`Invalid ${face} face: expected a 3x3 color grid`)
+    }
+
+    const center = grid[1][1]
+    if (center !== EXPECTED_CENTER_COLORS[face]) {
+      throw new Error(`Invalid ${face} center: expected ${EXPECTED_CENTER_COLORS[face]}, got ${center}`)
+    }
+
+    for (const row of grid) {
+      for (const color of row) {
+        if (!STICKER_COLORS.includes(color)) {
+          throw new Error(`Invalid cube color: ${color}`)
+        }
+        counts.set(color, (counts.get(color) ?? 0) + 1)
+      }
+    }
+  }
+
+  for (const color of STICKER_COLORS) {
+    const count = counts.get(color) ?? 0
+    if (count !== 9) {
+      throw new Error(`Invalid cube color count for ${color}: expected 9, got ${count}`)
+    }
+  }
+}
+
+function sameColorSet(a: FaceColor[], b: FaceColor[]): boolean {
+  if (a.length !== b.length) return false
+  const aa = [...a].sort()
+  const bb = [...b].sort()
+  return aa.every((color, index) => color === bb[index])
+}
+
+function formatFaceColors(faceColors: Record<string, FaceColor | undefined>): string {
+  return Object.entries(faceColors)
+    .filter(([, color]) => color !== undefined)
+    .map(([face, color]) => `${face}:${color}`)
+    .join(', ')
+}
+
 /**
  * 从 CubeState 创建 CubieBasedCubeState
  * 
@@ -17,6 +88,8 @@ import { createSolvedCubieBasedCube } from './cubieBasedCubeLogic'
  * 4. 确定每个 cubie 的方向（颜色朝向）
  */
 export function faceColorsToCubieBasedState(cubeState: CubeState): CubieBasedCubeState {
+  validateCubeState(cubeState)
+
   // 创建已解决状态作为基础
   const solved = createSolvedCubieBasedCube()
   const result: CubieBasedCubeState = {
@@ -134,12 +207,14 @@ export function faceColorsToCubieBasedState(cubeState: CubeState): CubieBasedCub
   for (const pos of cornerPositions) {
     const targetColors = Object.values(pos.faceColors).filter(c => c !== undefined) as FaceColor[]
     const matchingCorner = findMatchingCorner(targetColors, solved.corners, result.corners)
-    if (matchingCorner) {
-      result.corners[matchingCorner.id] = {
-        ...matchingCorner,
-        coordinate: pos.coord,
-        colors: adjustCornerColors(matchingCorner.colors, pos.faceColors, pos.coord),
-      }
+    if (!matchingCorner) {
+      throw new Error(`Invalid corner cubie at [${pos.coord.join(', ')}]: ${formatFaceColors(pos.faceColors)}`)
+    }
+
+    result.corners[matchingCorner.id] = {
+      ...matchingCorner,
+      coordinate: pos.coord,
+      colors: adjustCornerColors(pos.faceColors, pos.coord),
     }
   }
 
@@ -250,13 +325,22 @@ export function faceColorsToCubieBasedState(cubeState: CubeState): CubieBasedCub
   for (const pos of edgePositions) {
     const targetColors = Object.values(pos.faceColors).filter(c => c !== undefined) as FaceColor[]
     const matchingEdge = findMatchingEdge(targetColors, solved.edges, result.edges)
-    if (matchingEdge) {
-      result.edges[matchingEdge.id] = {
-        ...matchingEdge,
-        coordinate: pos.coord,
-        colors: adjustEdgeColors(matchingEdge.colors, pos.faceColors, pos.coord),
-      }
+    if (!matchingEdge) {
+      throw new Error(`Invalid edge cubie at [${pos.coord.join(', ')}]: ${formatFaceColors(pos.faceColors)}`)
     }
+
+    result.edges[matchingEdge.id] = {
+      ...matchingEdge,
+      coordinate: pos.coord,
+      colors: adjustEdgeColors(pos.faceColors, pos.coord),
+    }
+  }
+
+  if (Object.keys(result.corners).length !== 8) {
+    throw new Error(`Invalid cube: expected 8 corner cubies, got ${Object.keys(result.corners).length}`)
+  }
+  if (Object.keys(result.edges).length !== 12) {
+    throw new Error(`Invalid cube: expected 12 edge cubies, got ${Object.keys(result.edges).length}`)
   }
 
   return result
@@ -284,8 +368,7 @@ function findMatchingCorner(
     ].filter(c => c !== null) as FaceColor[]
     
     // 检查是否包含所有目标颜色
-    const hasAllColors = targetColors.every(tc => cornerColors.includes(tc))
-    if (hasAllColors && cornerColors.length === 3 && targetColors.length === 3) {
+    if (sameColorSet(targetColors, cornerColors)) {
       return { id: id as CornerCubieId, colors: corner.colors }
     }
   }
@@ -314,8 +397,7 @@ function findMatchingEdge(
     ].filter(c => c !== null) as FaceColor[]
     
     // 检查是否包含所有目标颜色
-    const hasAllColors = targetColors.every(tc => edgeColors.includes(tc))
-    if (hasAllColors && edgeColors.length === 2 && targetColors.length === 2) {
+    if (sameColorSet(targetColors, edgeColors)) {
       return { id: id as EdgeCubieId, colors: edge.colors }
     }
   }
@@ -327,12 +409,11 @@ function findMatchingEdge(
  * 根据坐标确定哪些面可见，然后设置对应的颜色
  */
 function adjustCornerColors(
-  originalColors: CubieColors,
   targetFaceColors: { U?: FaceColor, D?: FaceColor, F?: FaceColor, B?: FaceColor, R?: FaceColor, L?: FaceColor },
   coord: [number, number, number]
 ): CubieColors {
   const [x, y, z] = coord
-  const result: CubieColors = { ...originalColors }
+  const result: CubieColors = createBlackCubieColors()
   
   // 根据坐标确定哪些面可见，然后设置对应的颜色
   // y=1 表示在魔方的 U 面，此时 cubie 的 upper 面可见
@@ -368,12 +449,11 @@ function adjustCornerColors(
  * 根据坐标确定哪些面可见，然后设置对应的颜色
  */
 function adjustEdgeColors(
-  originalColors: CubieColors,
   targetFaceColors: { U?: FaceColor, D?: FaceColor, F?: FaceColor, B?: FaceColor, R?: FaceColor, L?: FaceColor },
   coord: [number, number, number]
 ): CubieColors {
   const [x, y, z] = coord
-  const result: CubieColors = { ...originalColors }
+  const result: CubieColors = createBlackCubieColors()
   
   // 根据坐标确定哪些面可见，然后设置对应的颜色
   if (y === 1 && targetFaceColors.U) {
