@@ -80,6 +80,9 @@ export const IDA_STAR_DEFAULT_MAX_WALL_MS = 300_000
 
 export const IDA_STAR_MAX_WALL_MS_STORAGE_KEY = 'IDA_STAR_MAX_WALL_MS'
 
+const IDA_STAR_UI_EXACT_DEPTH_LIMIT = 8
+const IDA_STAR_UI_MAX_WALL_MS = 30_000
+
 const THISTLETHWAITE_UI_TUNING: ThistlethwaiteSearchTuning = {
   bfsMaxNodes: 2_000_000,
   phase01TimeoutMs: 20_000,
@@ -202,7 +205,9 @@ export async function solveByIDAStar(
   
   let nodeCount = 0
 
-  // 启发式：取「错块数/4」与「Manhattan 和/4」的 max，均为可采纳下界的常见组合（信息量优于单独错块计数）
+  // 启发式：取「错块数/4」与坐标 Manhattan 下界的 max。
+  // 在当前 HTM move set 中，R2/F2 等半转算一步；一次半转最多可让 4 个角块各减少 4 格
+  // Manhattan（合计 16），棱块最多合计约 8，因此不能用 /4，否则会高估并破坏 IDA* 完备性。
   function heuristic(state: CubieBasedCubeState): number {
     let cornerWrong = 0
     let edgeWrong = 0
@@ -246,7 +251,7 @@ export async function solveByIDAStar(
 
     const hWrong = Math.max(Math.ceil(cornerWrong / 4), Math.ceil(edgeWrong / 4))
     const { sumCorner, sumEdge } = manhattanSums(state, solved)
-    const hMan = Math.max(Math.ceil(sumCorner / 4), Math.ceil(sumEdge / 4))
+    const hMan = Math.max(Math.ceil(sumCorner / 16), Math.ceil(sumEdge / 8))
     return Math.max(hWrong, hMan)
   }
 
@@ -305,26 +310,7 @@ export async function solveByIDAStar(
       return { found: false, path: [], nextThreshold: Infinity }
     }
 
-    // 深度限制：防止递归过深导致栈溢出（如 R L R' L' 等循环路径）
-    if (g >= maxDepth) {
-      return { found: false, path: [], nextThreshold: Infinity }
-    }
-
     const faceColors = cubieBasedStateToFaceColors(state)
-    const stateKey = cubeStateToKeyString(faceColors)
-    const prevDepth = visited.get(stateKey)
-    if (prevDepth !== undefined && prevDepth <= g) {
-      return { found: false, path: [], nextThreshold: Infinity }
-    }
-    visited.set(stateKey, g)
-
-    nodeCount++
-
-    // 定期让出主线程，避免长时间同步计算卡死页面
-    if (yieldEvery > 0 && nodeCount % yieldEvery === 0) {
-      await yieldToBrowser()
-    }
-
     const h = heuristic(state)
     const f = g + h
 
@@ -350,9 +336,31 @@ export async function solveByIDAStar(
       return { found: false, path: [], nextThreshold: f }
     }
 
-    // 必须用完整状态比较（含朝向），不能用 h===0 代替
+    // 必须用完整状态比较（含朝向），不能用 h===0 代替；要先于深度限制，
+    // 否则刚好在 maxDepth 处还原的路径会被误拒。
     if (isSolvedFaceColors(faceColors)) {
       return { found: true, path: path.slice(), nextThreshold: threshold }
+    }
+
+    // 深度限制：防止递归过深导致栈溢出（如 R L R' L' 等循环路径）
+    if (g >= maxDepth) {
+      return { found: false, path: [], nextThreshold: Infinity }
+    }
+
+    const stateKey = cubeStateToKeyString(faceColors)
+    const lastFaceForPruning = path.length > 0 ? path[path.length - 1][0] : ''
+    const visitKey = `${stateKey}|${lastFaceForPruning}`
+    const prevDepth = visited.get(visitKey)
+    if (prevDepth !== undefined && prevDepth <= g) {
+      return { found: false, path: [], nextThreshold: Infinity }
+    }
+    visited.set(visitKey, g)
+
+    nodeCount++
+
+    // 定期让出主线程，避免长时间同步计算卡死页面
+    if (yieldEvery > 0 && nodeCount % yieldEvery === 0) {
+      await yieldToBrowser()
     }
     
     let minThreshold = Infinity
@@ -498,7 +506,44 @@ export async function solveCube(
         const cubie = cubieFromCubestring(
           cubieBasedStateToCanonicalCubestring(cubieBasedState)
         )
-        return await solveByIDAStar(cubie, 20)
+        if (isCanonicalSolved(cubie)) {
+          return []
+        }
+
+        if (movesToState && movesToState.length > IDA_STAR_UI_EXACT_DEPTH_LIMIT) {
+          const reverseSolution = solveByReverseMoves(movesToState)
+          if (solutionRestoresState(cubie, reverseSolution)) {
+            console.warn(
+              `IDA* UI：已知打乱长度为 ${movesToState.length}，超过浏览器内纯 IDA* 的实用浅层阈值 ${IDA_STAR_UI_EXACT_DEPTH_LIMIT}；` +
+                '使用打乱历史的逆序解作为兜底。'
+            )
+            return reverseSolution
+          }
+        }
+
+        const idaSolution = await solveByIDAStar(
+          cubie,
+          20,
+          IDA_STAR_MAX_NODES,
+          IDA_STAR_YIELD_EVERY_NODES,
+          undefined,
+          IDA_STAR_UI_MAX_WALL_MS
+        )
+        if (idaSolution.length > 0 && solutionRestoresState(cubie, idaSolution)) {
+          return idaSolution
+        }
+
+        if (movesToState && movesToState.length > 0) {
+          const reverseSolution = solveByReverseMoves(movesToState)
+          if (solutionRestoresState(cubie, reverseSolution)) {
+            console.warn('IDA* UI：纯 IDA* 未在预算内完成；使用打乱历史的逆序解作为兜底。')
+            return reverseSolution
+          }
+        }
+
+        throw new Error(
+          'IDA* 未在当前深度/时间预算内找到解。复杂状态需要模式库启发式，或使用 Kociemba/Thistlethwaite。'
+        )
       }
 
       case 'thistlethwaite':

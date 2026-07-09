@@ -191,11 +191,42 @@ describe('solver validation diagnostics', () => {
     60_000
   )
 
+  it('cubeSolver dispatcher IDA* restores a known app-style 25-turn scramble via history fallback', async () => {
+    const scramble: Move[] = [
+      'R', "U'", 'L', 'F', "B'", 'D',
+      "R'", 'U', 'F', "L'", 'B', "D'",
+      'R', 'F', "U'", 'L', "B'", 'D',
+      "F'", 'R', "L'", 'U', "D'", 'B', "R'",
+    ]
+
+    let start = createSolvedCubieBasedCube()
+    for (const move of scramble) {
+      start = applyCubieMove(start, move)
+    }
+
+    const solution = await solveCubeByDispatcher(start, 'ida-star', scramble)
+    expect(solution).toEqual(solveByReverseMoves(scramble))
+
+    let restored = start
+    for (const move of solution) {
+      restored = applyCubieMove(restored, move)
+    }
+    expect(cubieBasedStateToCanonicalCubestring(restored)).toBe(SOLVED_CUBESTRING)
+  })
+
   it('IDA* restores a two-turn cubestring state under local move semantics', async () => {
     const scramble: Move[] = ['R', 'U']
     const start = applyMovesToCubestring(SOLVED_CUBESTRING, scramble)
     const solution = await solveByIDAStar(cubieFromCubestring(start), 6, 500_000, 0, false, 10_000)
     expect(solution.length).toBeGreaterThan(0)
+    expect(applyMovesToCubestring(start, solution as Move[])).toBe(SOLVED_CUBESTRING)
+  })
+
+  it('IDA* accepts solutions exactly at maxDepth', async () => {
+    const scramble: Move[] = ['R', 'U']
+    const start = applyMovesToCubestring(SOLVED_CUBESTRING, scramble)
+    const solution = await solveByIDAStar(cubieFromCubestring(start), 2, 100_000, 0, false, 10_000)
+    expect(solution.length).toBe(2)
     expect(applyMovesToCubestring(start, solution as Move[])).toBe(SOLVED_CUBESTRING)
   })
 
