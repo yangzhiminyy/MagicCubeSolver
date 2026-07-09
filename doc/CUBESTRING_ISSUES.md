@@ -1,6 +1,8 @@
 # Cubestring 格式问题分析
 
-## 问题总结
+> 当前状态（2026-07-09）：本文是早期 cubestring / Kociemba 兼容性排查记录，不代表当前实现状态。当前单一事实来源是 `src/utils/cubestringCodec.ts` 与 `src/utils/cubeConverter.ts`；URFDLB、每面行优先的编解码已由 `cubestringCodec.test.ts`、`solverValidation.test.ts` 等测试覆盖。下文“单步 R 无效”“读取顺序可能错误”等内容保留为历史背景。
+
+## 历史问题总结
 
 根据测试结果，发现了以下格式问题：
 
@@ -29,7 +31,7 @@
 - 边块和角块的位置/方向组合在物理上不可能
 - Cubestring 的读取顺序有问题，导致生成的字符串不代表一个有效的魔方状态
 
-## 关键发现
+## 历史关键发现
 
 1. **格式验证通过，但状态无效**：
    - 基本的格式检查（长度、字符、颜色数量、中心块）都通过
@@ -40,7 +42,7 @@
    - 我们的 `cubeStateToCubestring` 函数中的读取顺序可能不正确
    - 特别是 U、D、B 面的读取顺序（这些面有特殊的坐标映射）
 
-## 建议的修复方向
+## 当时建议的修复方向
 
 1. **重新检查 Kociemba 官方文档**：
    - 确认 U1-U9, R1-R9, F1-F9, D1-D9, L1-L9, B1-B9 的确切读取顺序
@@ -58,16 +60,16 @@
    - 检查边块和角块的位置是否正确
    - 检查边块的方向是否正确（边块有 2 个方向）
 
-## 当前状态
+## 当时状态（历史）
 
-- ✅ 基本格式正确（长度、字符、颜色数量、中心块）
-- ❌ 读取顺序可能有问题
-- ❌ 边块/角块的位置/方向可能不正确
-- ❌ Kociemba 不认为已解决状态是已解决的
+- 当时已确认基本格式正确（长度、字符、颜色数量、中心块）。
+- 当时怀疑读取顺序、边块/角块位置或方向存在问题。
+- 当时出现过 Kociemba 对部分状态判无效的现象。
+- 当前实现已通过统一 `cubestringCodec` 和回归测试收敛这些问题；本节仅保留排查背景。
 
-## 下一步
+## 当时下一步（大多已完成）
 
-1. 深入研究 Kociemba 的 cubestring 格式规范
-2. 单一契约模块：`src/utils/cubestringCodec.ts`（`parseCubestring` / `cubieBasedStateToCanonicalCubestring` / `applyMovesToCubestring`）；与 `cubeConverter.cubeStateToCubestring` 对齐。
-3. **回归**：`src/utils/cubestringCodec.test.ts`（层级 0）— 已解串往返、基本转动恒等；单步 R 金样本可在此补充为 `applyMovesToCubestring(SOLVED, ['R'])` 与 Kociemba 互测。
-4. 若 Kociemba 仍报「无效」，再对照官方 U1–B9 读序逐面排查 `cubeStateToCubestring`。
+1. 深入研究 Kociemba 的 cubestring 格式规范。
+2. 建立单一契约模块：`src/utils/cubestringCodec.ts`。
+3. 用 `src/utils/cubestringCodec.test.ts` 和 `src/utils/solverValidation.test.ts` 覆盖已解串往返、基本转动、求解器输出还原。
+4. 若未来 Kociemba 再报「无效」，优先从 `cubestringCodec`、`cubeConverter.cubeStateToCubestring` 和面/块模型互转测试排查。

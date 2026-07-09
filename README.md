@@ -67,8 +67,8 @@ The application supports multiple solving algorithms, selectable via the UI:
 **Status Summary:**
 - ✅ **Reverse Moves**: Fully functional
 - ✅ **Kociemba**: Fully functional (using kociemba-wasm)
-- **IDA***: Phased IDA* search for random scrambles; shallow states still use exact full-space IDA*
-- 🚧 **Thistlethwaite**: Under development (may have issues)
+- ✅ **IDA***: Phased IDA* search for random scrambles; shallow states still use exact full-space IDA*
+- ✅ **Thistlethwaite**: Fully functional four-stage solver with table-backed phases
 
 ### 1. Reverse Moves (Default)
 - **Speed**: ⚡⚡⚡⚡⚡ (Fastest)
@@ -97,42 +97,34 @@ The application supports multiple solving algorithms, selectable via the UI:
   - First run builds abstract distance tables; later solves reuse in-memory caches
 
 ### 4. Thistlethwaite Algorithm
-- **Status**: 🚧 Under development
-- **Speed**: ⚡ (Very Slow)
+- **Status**: ✅ Fully functional and tested
+- **Speed**: ⚡⚡⚡ (Moderate after first table build)
 - **Requirements**: None
-- **Description**: Four-stage algorithm that progressively restricts the cube to subgroups. Implemented with asynchronous BFS search.
+- **Description**: Four-stage algorithm that progressively restricts the cube to subgroups. It uses precomputed/derived abstract tables for EO, corner orientation + E-slice, G2→G3 cosets, and the half-turn group.
 - **Use Case**: Educational purposes, understanding group theory approach
 - **Limitations**: 
-  - Currently under development, may have issues
-  - Very slow for complex states
-  - May timeout on stage 2->3 transition
-  - Simplified implementation (not full group theory)
+  - First run builds several in-memory tables; later solves on the same page are much faster
+  - Solution length is phase-oriented and not globally optimal
 
 ## Current Issues
 
 ### Known Problems
 
-1. **Thistlethwaite Performance**
-   - **Issue**: The algorithm is very slow and may timeout on stage 2->3 transition
-   - **Impact**: Complex states may fail to solve within timeout period
-   - **Status**: Simplified implementation, may need optimization or full group theory implementation
-   - **Workaround**: Use other algorithms for practical solving
-
-2. **Animation State Update Race Condition**
+1. **Animation State Update Race Condition**
    - **Issue**: When clicking "Next Step" very quickly after solving, the cube may not be correctly restored
    - **Root Cause (corrected)**: `currentStep` was incremented even when a new turn animation did not start (e.g. click while the previous rotation was still running), so the step index diverged from the number of `applyMove` commits. The solve-only `isAnimating` flag did not disable controls during cube rotation.
    - **Impact**: Rapid clicks could skip moves relative to the solution list
    - **Status**: Addressed in code; see [`doc/ANIMATION_STEP_RACE.md`](./doc/ANIMATION_STEP_RACE.md)
    - **Workaround (if using an older build)**: Wait for each animation to complete before clicking the next step
 
-3. **Animation Reset**
+2. **Animation Reset**
    - **Issue**: After animation completes, cubies are reset to their original positions before the new state is applied
    - **Impact**: Brief visual glitch during state transition
    - **Status**: Minor issue, does not affect functionality
 
 ### Future Improvements
 
-- Optimize Thistlethwaite algorithm or implement full group theory version
+- Prewarm solver tables in a Web Worker to avoid first-click table-build cost on the main thread
 - Add solution step auto-playback with configurable speed
 - Add move notation display (e.g., "R U R' U'")
 - Improve animation smoothness and add easing functions
@@ -287,8 +279,8 @@ MIT
 **状态总结：**
 - ✅ **反向移动**：完全功能正常
 - ✅ **Kociemba**：完全功能正常（使用 kociemba-wasm）
-- **IDA***：支持随机打乱的分阶段 IDA* 搜索；浅层状态仍使用完整空间 IDA*
-- 🚧 **Thistlethwaite**：开发中（可能存在问题）
+- ✅ **IDA***：支持随机打乱的分阶段 IDA* 搜索；浅层状态仍使用完整空间 IDA*
+- ✅ **Thistlethwaite**：表驱动四阶段算法，已支持随机打乱
 
 ### 1. 反向移动（默认）
 - **速度**：⚡⚡⚡⚡⚡（最快）
@@ -317,42 +309,35 @@ MIT
   - 首次运行需要构建抽象距离表，之后同页内会复用缓存
 
 ### 4. Thistlethwaite 算法
-- **状态**：🚧 开发中
-- **速度**：⚡（非常慢）
+- **状态**：✅ 已可用并通过随机打乱校验
+- **速度**：⚡⚡⚡（首次构建距离表较慢，之后同页内复用缓存会明显变快）
 - **要求**：无
-- **描述**：四阶段算法，逐步将魔方限制到子群。使用异步BFS搜索实现。
-- **使用场景**：教育目的，理解群论方法
+- **描述**：四阶段算法，逐步将魔方限制到子群；当前实现使用抽象距离表和分阶段搜索，不依赖反向打乱历史。
+- **使用场景**：需要观察 Thistlethwaite 分阶段路径，或作为 Kociemba 之外的自研求解器
 - **限制**：
-  - 当前处于开发中，可能存在问题
-  - 对于复杂状态非常慢
-  - 可能在阶段 2->3 转换时超时
-  - 简化实现（非完整群论）
+  - 首次运行需要构建抽象距离表，后续求解会复用内存缓存
+  - 分阶段解不保证全局最短
+  - 在非常复杂或异常状态上仍可能触发超时保护
 
 ## 当前问题
 
 ### 已知问题
 
-1. **Thistlethwaite 性能**
-   - **问题**：算法非常慢，可能在阶段 2->3 转换时超时
-   - **影响**：复杂状态可能在超时期间内无法求解
-   - **状态**：简化实现，可能需要优化或完整群论实现
-   - **解决方法**：实际求解时使用其他算法
-
-2. **动画状态更新竞态条件**
+1. **动画状态更新竞态条件**
    - **问题**：求解后快速点击"下一步"时，魔方可能无法正确还原
    - **根本原因（更正）**：在上一段转动动画尚未开始时若重复点击，`currentStep` 仍会增加，但 `applyMove` 只在动画结束时提交，导致步骤索引与真实转动次数不一致；用于求解的 `isAnimating` 未覆盖魔方转动动画期间的禁用逻辑。
    - **影响**：过快点击可能导致相对解法序列「跳步」
    - **状态**：已在代码中修复；说明见 [`doc/ANIMATION_STEP_RACE.md`](./doc/ANIMATION_STEP_RACE.md)
    - **变通（旧版本）**：在点击下一步前等待每个动画完成
 
-3. **动画重置**
+2. **动画重置**
    - **问题**：动画完成后，小块在应用新状态之前会重置到原始位置
    - **影响**：状态转换期间的短暂视觉故障
    - **状态**：小问题，不影响功能
 
 ### 未来改进
 
-- 优化 Thistlethwaite 算法或实现完整群论版本
+- 将 Thistlethwaite / 分阶段 IDA* 的距离表预热迁移到 Web Worker，降低首次求解等待感
 - 添加可配置速度的求解步骤自动回放
 - 添加移动符号显示（例如 "R U R' U'"）
 - 改善动画平滑度并添加缓动函数

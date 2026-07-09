@@ -1,5 +1,7 @@
 # Kociemba 格式分析
 
+> 当前状态（2026-07-09）：本文是历史格式排查记录。当前实现已经将 `cubeStateToCubestring`、`cubestringCodec` 和求解器测试统一到 Kociemba 标准 cubestring：面序 URFDLB，每面 9 贴纸行优先。下文“与当时实现的冲突”描述的是旧实现问题，不应再作为当前 bug 结论引用。
+
 ## 官方文档要点
 
 根据 [Kociemba GitHub README](https://raw.githubusercontent.com/muodov/kociemba/blob/master/README.md)：
@@ -44,9 +46,9 @@
 - 第三行：位置 6-8 (U7-U9, R7-R9, F7-F9, D7-D9, L7-L9, B7-B9)
 - 中心块：位置 4 (第二行第二列)
 
-## 与现有实现的冲突
+## 与当时实现的冲突
 
-### 我们的实现问题
+### 当时的实现问题
 
 在 `cubeStateToCubestring` 函数中：
 
@@ -65,11 +67,11 @@
 4. **R面、F面、L面**：`row=0到2, col=0到2`（标准顺序）✅
    - 与官方文档一致
 
-### 根本原因
+### 当时推测的根本原因
 
 我们的实现试图根据内部坐标系统（`RubiksCube.tsx`）的特殊映射来调整读取顺序，但**Kociemba 要求每个面都是标准的行优先顺序**，不需要根据视角调整。
 
-## 解决方案
+## 当时解决方案
 
 需要修改 `cubeStateToCubestring` 函数，使所有面都使用标准的行优先顺序：
 

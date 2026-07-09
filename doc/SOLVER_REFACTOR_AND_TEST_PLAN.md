@@ -1,5 +1,7 @@
 # 求解层重构与测试设计方案
 
+> 当前状态（2026-07-09）：本文是重构计划与设计记录。核心契约已经基本落地：`cubestringCodec.ts`、`solverFromCubestring.ts`、`solverValidation.test.ts` 已覆盖 cubestring 编解码、转动语义、Kociemba、Thistlethwaite 和 IDA* 的还原校验。后文仍保留为架构背景和后续测试扩展参考。
+
 本文档约定：**以 cubestring（Kociemba 54 字符）作为「展示 / 存储 / 交换」的统一契约**，在测试与可选 CLI 中与 3D 完全解耦；**IDA\* / 自研 Thistlethwaite** 逐步对齐该契约，并按 **1 步 → 2 步 → 5 步 → 长序列 / 全打乱** 递增验证，全部可走单元测试。
 
 ---
@@ -20,7 +22,7 @@
 ## 2. 现状摘要（与本文档相关的部分）
 
 - **Kociemba：** `cubeConverter` 中 `cubieBasedState` → `cubeStateToCubestring` → `kociemba-wasm`；输入路径已偏「串化」。
-- **IDA\*：** `solveByIDAStar(cubieBasedState)`，内部 cubie 模型。
+- **IDA\*：** `solveByIDAStar(cubieBasedState)` 保留为浅层完整空间搜索；UI 调度器在随机打乱时会切到 `solveByPhasedIDAStar`。
 - **自研 Thistlethwaite：** `thistlethwaiteSolve(cubieState, …)`（`cubeSolver.ts` 中 `case 'thistlethwaite'`）。
 - **命名冲突（已处理）：** `cubeSolver.ts` 中原 `solveByThistlethwaite(cubestring)` 已更名为 **`solveByCubeSolverKociemba`**（仍走 `cube-solver` 的 Kociemba）；UI「自研 Thistlethwaite」仍对应 `thistlethwaite.ts` 的 `solveByThistlethwaite(cubie)`。
 
