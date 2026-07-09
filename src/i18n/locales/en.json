@@ -13,7 +13,7 @@
     "algoReverse": "Reverse moves (fastest; needs scramble history)",
     "algoKociemba": "Kociemba (fast, two-phase)",
     "algoThistle": "Thistlethwaite (four-phase)",
-    "algoIda": "IDA* (slower, optimal) 🚧 WIP",
+    "algoIda": "IDA* (phased search)",
     "manualOps": "Manual moves",
     "solutionSteps": "Solution",
     "totalMoves": "Moves: {{count}}",

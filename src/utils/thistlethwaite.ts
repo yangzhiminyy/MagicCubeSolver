@@ -277,14 +277,18 @@ const EO_TABLE_BUILD_VERSION = 4
 
 /** 边朝向父指针表：从已解 EO 做 BFS，仅 2048 状态，一次性构建 */
 let eoParentTable: Array<{ prev: number; move: Move } | undefined> | null = null
+let eoDistanceTable: Int8Array | null = null
 let eoTableBuiltCount = 0
 let eoTableBuildVersion = 0
 
 function buildEdgeOrientationParentTable(): void {
   if (eoParentTable !== null && eoTableBuildVersion === EO_TABLE_BUILD_VERSION) return
   eoParentTable = null
+  eoDistanceTable = null
 
   const parents: Array<{ prev: number; move: Move } | undefined> = new Array(2048).fill(undefined)
+  const distances = new Int8Array(2048)
+  distances.fill(-1)
   const rep: CubieBasedCubeState[] = new Array(2048)
   const seen = new Array(2048).fill(false)
   const q: number[] = []
@@ -292,6 +296,7 @@ function buildEdgeOrientationParentTable(): void {
   const solved = createSolvedCubieBasedCube()
   rep[0] = cloneCubieBasedState(solved)
   seen[0] = true
+  distances[0] = 0
   q.push(0)
 
   while (q.length > 0) {
@@ -304,6 +309,7 @@ function buildEdgeOrientationParentTable(): void {
       if (!seen[neo]) {
         seen[neo] = true
         parents[neo] = { prev: eo, move }
+        distances[neo] = distances[eo] + 1
         rep[neo] = ns
         q.push(neo)
       }
@@ -311,6 +317,7 @@ function buildEdgeOrientationParentTable(): void {
   }
 
   eoParentTable = parents
+  eoDistanceTable = distances
   eoTableBuildVersion = EO_TABLE_BUILD_VERSION
   eoTableBuiltCount = seen.filter(Boolean).length
   console.log(`Thistlethwaite: 边朝向(EO) BFS 表已构建，可达 ${eoTableBuiltCount}/2048 状态`)
@@ -370,14 +377,17 @@ let coMoveTable: Int16Array | null = null
 let sliceMoveTable: Int16Array | null = null
 let phase1ParentTable: Int32Array | null = null
 let phase1ParentMoveTable: Int8Array | null = null
+let phase1DistanceTable: Int8Array | null = null
 let phase2CornerCosetByRank: Int16Array | null = null
 let phase2ParentTable: Int32Array | null = null
 let phase2ParentMoveTable: Int8Array | null = null
+let phase2DistanceTable: Int8Array | null = null
 let phase2SolvedKey = -1
 let phase3IndexByKey: Map<number, number> | null = null
 let phase3Keys: number[] | null = null
 let phase3ParentTable: number[] | null = null
 let phase3ParentMoveTable: number[] | null = null
+let phase3DistanceTable: Int8Array | null = null
 
 function moveAmount(move: Move): 1 | 2 | 3 {
   if (move.endsWith('2')) return 2
@@ -550,13 +560,15 @@ function splitPhase1Index(index: number): { coIndex: number; sliceIndex: number 
 }
 
 function buildPhase1ParentTable(): void {
-  if (phase1ParentTable && phase1ParentMoveTable) return
+  if (phase1ParentTable && phase1ParentMoveTable && phase1DistanceTable) return
   buildPhase1MoveTables()
 
   const parents = new Int32Array(PHASE1_STATE_COUNT)
   parents.fill(-1)
   const parentMoves = new Int8Array(PHASE1_STATE_COUNT)
   parentMoves.fill(-1)
+  const distances = new Int8Array(PHASE1_STATE_COUNT)
+  distances.fill(-1)
   const queue = new Int32Array(PHASE1_STATE_COUNT)
   let head = 0
   let tail = 0
@@ -564,6 +576,7 @@ function buildPhase1ParentTable(): void {
   const solvedSliceIndex = sliceMaskToIndex![HOME_E_SLICE_MASK]
   const solvedIndex = phase1Index(0, solvedSliceIndex)
   parents[solvedIndex] = solvedIndex
+  distances[solvedIndex] = 0
   queue[tail++] = solvedIndex
 
   while (head < tail) {
@@ -576,12 +589,14 @@ function buildPhase1ParentTable(): void {
       if (parents[next] !== -1) continue
       parents[next] = idx
       parentMoves[next] = m
+      distances[next] = distances[idx] + 1
       queue[tail++] = next
     }
   }
 
   phase1ParentTable = parents
   phase1ParentMoveTable = parentMoves
+  phase1DistanceTable = distances
   console.log(`Thistlethwaite: 阶段 1->2 抽象表已构建，可达 ${tail}/${PHASE1_STATE_COUNT} 状态`)
 }
 
@@ -746,12 +761,14 @@ function phase2Key(cp: number[], ep: number[]): number | null {
 }
 
 function buildPhase2ParentTable(): void {
-  if (phase2ParentTable && phase2ParentMoveTable) return
+  if (phase2ParentTable && phase2ParentMoveTable && phase2DistanceTable) return
 
   const parents = new Int32Array(PHASE2_STATE_COUNT)
   parents.fill(-1)
   const parentMoves = new Int8Array(PHASE2_STATE_COUNT)
   parentMoves.fill(-1)
+  const distances = new Int8Array(PHASE2_STATE_COUNT)
+  distances.fill(-1)
   const representativeCps: number[][] = new Array(PHASE2_STATE_COUNT)
   const representativeEps: number[][] = new Array(PHASE2_STATE_COUNT)
   const queue = new Int32Array(PHASE2_STATE_COUNT)
@@ -767,6 +784,7 @@ function buildPhase2ParentTable(): void {
 
   phase2SolvedKey = solvedKey
   parents[solvedKey] = solvedKey
+  distances[solvedKey] = 0
   representativeCps[solvedKey] = solvedCp
   representativeEps[solvedKey] = solvedEp
   queue[tail++] = solvedKey
@@ -786,6 +804,7 @@ function buildPhase2ParentTable(): void {
 
       parents[nextKey] = key
       parentMoves[nextKey] = m
+      distances[nextKey] = distances[key] + 1
       representativeCps[nextKey] = nextPieces.cp
       representativeEps[nextKey] = nextPieces.ep
       queue[tail++] = nextKey
@@ -800,6 +819,7 @@ function buildPhase2ParentTable(): void {
 
   phase2ParentTable = parents
   phase2ParentMoveTable = parentMoves
+  phase2DistanceTable = distances
   console.log(`Thistlethwaite: 阶段 2->3 抽象表已构建，可达 ${tail}/${PHASE2_STATE_COUNT} 状态`)
 }
 
@@ -850,12 +870,13 @@ function encodeEdgePermutation(state: CubieBasedCubeState): number[] | null {
 }
 
 function buildPhase3ParentTable(): void {
-  if (phase3IndexByKey && phase3Keys && phase3ParentTable && phase3ParentMoveTable) return
+  if (phase3IndexByKey && phase3Keys && phase3ParentTable && phase3ParentMoveTable && phase3DistanceTable) return
 
   const indexByKey = new Map<number, number>()
   const keys: number[] = []
   const parents: number[] = []
   const parentMoves: number[] = []
+  const distances: number[] = []
   const queue: number[] = []
 
   const solvedCp = Array.from({ length: 8 }, (_, i) => i)
@@ -865,6 +886,7 @@ function buildPhase3ParentTable(): void {
   keys.push(solvedKey)
   parents.push(0)
   parentMoves.push(-1)
+  distances.push(0)
   queue.push(0)
 
   let head = 0
@@ -880,6 +902,7 @@ function buildPhase3ParentTable(): void {
       keys.push(nextKey)
       parents.push(idx)
       parentMoves.push(m)
+      distances.push(distances[idx] + 1)
       queue.push(nextIndex)
     }
   }
@@ -888,6 +911,7 @@ function buildPhase3ParentTable(): void {
   phase3Keys = keys
   phase3ParentTable = parents
   phase3ParentMoveTable = parentMoves
+  phase3DistanceTable = Int8Array.from(distances)
   console.log(`Thistlethwaite: 阶段 3->4 半转群表已构建，可达 ${keys.length} 状态`)
 }
 
@@ -1399,6 +1423,146 @@ async function searchInGroup(
   return null
 }
 
+function phase0DistanceHeuristic(state: CubieBasedCubeState): number {
+  buildEdgeOrientationParentTable()
+  const eo = encodeEdgeOrientationIndex(state)
+  if (eo < 0) return 99
+  const d = eoDistanceTable![eo]
+  return d < 0 ? 99 : d
+}
+
+function phase1DistanceHeuristic(state: CubieBasedCubeState): number {
+  buildPhase1ParentTable()
+  const coIndex = encodeCornerOrientationIndex(state)
+  const sliceIndex = encodeSliceCombinationIndex(state)
+  if (coIndex < 0 || sliceIndex < 0) return 99
+  const d = phase1DistanceTable![phase1Index(coIndex, sliceIndex)]
+  return d < 0 ? 99 : d
+}
+
+function phase2DistanceHeuristic(state: CubieBasedCubeState): number {
+  buildPhase2ParentTable()
+  const cp = encodeCornerPermutation(state)
+  const ep = encodeEdgePermutation(state)
+  if (!cp || !ep) return 99
+  const key = phase2Key(cp, ep)
+  if (key === null) return 99
+  const d = phase2DistanceTable![key]
+  return d < 0 ? 99 : d
+}
+
+function phase3DistanceHeuristic(state: CubieBasedCubeState): number {
+  buildPhase3ParentTable()
+  const key = encodePhase3StateKey(state)
+  if (key === null) return 99
+  const idx = phase3IndexByKey!.get(key)
+  if (idx === undefined) return 99
+  const d = phase3DistanceTable![idx]
+  return d < 0 ? 99 : d
+}
+
+async function searchPhaseIDAStar(
+  start: CubieBasedCubeState,
+  allowedMoves: Move[],
+  isGoal: (state: CubieBasedCubeState) => boolean,
+  heuristic: (state: CubieBasedCubeState) => number,
+  maxDepth: number,
+  timeoutMs: number,
+  maxNodes: number,
+  yieldEvery: number,
+  label: string,
+  onProgress?: (round: number, threshold: number, nodes: number) => void
+): Promise<Move[] | null> {
+  if (isGoal(start)) return []
+
+  const startTime = Date.now()
+  let threshold = heuristic(start)
+  if (threshold > maxDepth) return null
+  let totalNodes = 0
+  let round = 0
+  let visited = new Map<string, number>()
+
+  async function dfs(
+    state: CubieBasedCubeState,
+    path: Move[],
+    g: number,
+    currentThreshold: number
+  ): Promise<{ found: boolean; path: Move[]; nextThreshold: number }> {
+    if (Date.now() - startTime > timeoutMs || totalNodes >= maxNodes) {
+      return { found: false, path: [], nextThreshold: Infinity }
+    }
+
+    const h = heuristic(state)
+    const f = g + h
+    if (f > currentThreshold) {
+      return { found: false, path: [], nextThreshold: f }
+    }
+    if (isGoal(state)) {
+      return { found: true, path: path.slice(), nextThreshold: currentThreshold }
+    }
+    if (g >= maxDepth) {
+      return { found: false, path: [], nextThreshold: Infinity }
+    }
+
+    const lastFaceForPruning = path.length > 0 ? path[path.length - 1][0] : ''
+    const key = `${stateKey(state)}|${lastFaceForPruning}`
+    const prevG = visited.get(key)
+    if (prevG !== undefined && prevG <= g) {
+      return { found: false, path: [], nextThreshold: Infinity }
+    }
+    visited.set(key, g)
+
+    totalNodes++
+    if (yieldEvery > 0 && totalNodes % yieldEvery === 0) {
+      await yieldToBrowser()
+    }
+
+    let minNext = Infinity
+    const lastFace = path.length > 0 ? path[path.length - 1][0] : ''
+    for (const move of allowedMoves) {
+      const currentFace = move[0]
+      if (lastFace) {
+        if (lastFace === currentFace) continue
+        if (isOppositePairRedundant(lastFace, currentFace)) continue
+      }
+
+      const nextState = applyMove(state, move)
+      path.push(move)
+      const result = await dfs(nextState, path, g + 1, currentThreshold)
+      path.pop()
+
+      if (result.found) return result
+      minNext = Math.min(minNext, result.nextThreshold)
+    }
+
+    return { found: false, path: [], nextThreshold: minNext }
+  }
+
+  while (threshold <= maxDepth) {
+    if (Date.now() - startTime > timeoutMs || totalNodes >= maxNodes) {
+      console.warn(`IDA* ${label} 超出预算：threshold=${threshold}, nodes=${totalNodes}`)
+      return null
+    }
+
+    round++
+    visited = new Map<string, number>()
+    onProgress?.(round, threshold, totalNodes)
+
+    const result = await dfs(start, [], 0, threshold)
+    if (result.found) {
+      console.log(`IDA* ${label} 完成：轮次 ${round}, threshold=${threshold}, nodes=${totalNodes}`)
+      return result.path
+    }
+
+    if (result.nextThreshold === Infinity || result.nextThreshold > maxDepth) {
+      return null
+    }
+    threshold = result.nextThreshold > threshold ? result.nextThreshold : threshold + 1
+  }
+
+  return null
+}
+
 /** 阶段内 BFS（searchInGroup）的时间与结点上限；用于测试或难例时放宽，默认与原先常量一致 */
 export type ThistlethwaiteSearchTuning = {
   bfsMaxNodes?: number
@@ -1413,6 +1577,83 @@ export type ThistlethwaiteSearchTuning = {
   stage23TimeoutMs?: number
   stage34TimeoutFirstMs?: number
   stage34TimeoutRetryMs?: number
+}
+
+export type PhasedIDAStarSearchTuning = {
+  maxDepthPerPhase?: number
+  timeoutMsPerPhase?: number
+  maxNodesPerPhase?: number
+  yieldEvery?: number
+}
+
+/**
+ * 分阶段 IDA*：
+ * 仍使用 IDA* 的 f=g+h 迭代加深框架，但将随机 3x3 拆成 G0->G1->G2->G3->G4 四个子目标。
+ * 每个阶段的 h 来自对应抽象表的最短距离，因此随机打乱不会退化成全空间盲搜。
+ */
+export async function solveByPhasedIDAStar(
+  cubieState: CubieBasedCubeState,
+  tuning?: PhasedIDAStarSearchTuning,
+  onProgress?: (stage: number, round: number, threshold: number, nodes: number) => void
+): Promise<Move[]> {
+  if (isInG0(cubieState)) return []
+
+  const maxDepth = tuning?.maxDepthPerPhase ?? 20
+  const timeoutMs = tuning?.timeoutMsPerPhase ?? 60_000
+  const maxNodes = tuning?.maxNodesPerPhase ?? 2_000_000
+  const yieldEvery = tuning?.yieldEvery ?? 2500
+
+  let currentState = cloneCubieBasedState(cubieState)
+  const solution: Move[] = []
+
+  const phases: Array<{
+    label: string
+    stage: number
+    moves: Move[]
+    goal: (state: CubieBasedCubeState) => boolean
+    h: (state: CubieBasedCubeState) => number
+  }> = [
+    { label: '0->1', stage: 0, moves: G0_MOVES, goal: isInG1, h: phase0DistanceHeuristic },
+    { label: '1->2', stage: 1, moves: G1_MOVES, goal: isInG2, h: phase1DistanceHeuristic },
+    { label: '2->3', stage: 2, moves: G2_MOVES, goal: isInG3, h: phase2DistanceHeuristic },
+    { label: '3->4', stage: 3, moves: G3_MOVES, goal: isInG0, h: phase3DistanceHeuristic },
+  ]
+
+  for (const phase of phases) {
+    if (phase.goal(currentState)) continue
+
+    console.log(`IDA*: 开始阶段 ${phase.label}`)
+    const path = await searchPhaseIDAStar(
+      currentState,
+      phase.moves,
+      phase.goal,
+      phase.h,
+      maxDepth,
+      timeoutMs,
+      maxNodes,
+      yieldEvery,
+      phase.label,
+      (round, threshold, nodes) => onProgress?.(phase.stage, round, threshold, nodes)
+    )
+
+    if (!path) {
+      console.warn(`IDA*: 阶段 ${phase.label} 未在预算内完成`)
+      return []
+    }
+
+    solution.push(...path)
+    for (const move of path) {
+      currentState = applyMove(currentState, move)
+    }
+  }
+
+  if (!isInG0(currentState)) {
+    console.warn('IDA*: 分阶段搜索返回了步骤，但执行后未还原')
+    return []
+  }
+
+  console.log(`IDA*: 分阶段求解完成，总步数: ${solution.length}`)
+  return solution
 }
 
 /**

@@ -67,7 +67,7 @@ The application supports multiple solving algorithms, selectable via the UI:
 **Status Summary:**
 - ✅ **Reverse Moves**: Fully functional
 - ✅ **Kociemba**: Fully functional (using kociemba-wasm)
-- 🚧 **IDA***: Under development (may have issues)
+- **IDA***: Phased IDA* search for random scrambles; shallow states still use exact full-space IDA*
 - 🚧 **Thistlethwaite**: Under development (may have issues)
 
 ### 1. Reverse Moves (Default)
@@ -84,17 +84,17 @@ The application supports multiple solving algorithms, selectable via the UI:
 - **Status**: ✅ Fully functional and tested
 
 ### 3. IDA* (Iterative Deepening A*)
-- **Status**: 🚧 Under development
+- **Status**: ✅ Supports random scrambles via phased IDA*
 - **Speed**: ⚡⚡ (Slow)
 - **Requirements**: None
-- **Description**: Optimal search algorithm that finds the shortest solution path. Uses a simple heuristic function.
-- **Use Case**: When optimal solutions are required, but may be slow for complex states
+- **Description**: Uses exact full-space IDA* for shallow states, then switches to staged IDA* with table-backed admissible heuristics for random scrambles.
+- **Use Case**: When you want an in-house IDA* search path besides Kociemba/Thistlethwaite
 - **Implementation notes**: See [`doc/IDA_STAR_SOLVER.md`](./doc/IDA_STAR_SOLVER.md) for the current algorithm flow, pruning, and known limitations. Broader comparison (Columbia PDB/Kociemba notes, Jai0212, optimization ideas): [`doc/RUBIK_SOLVER_COMPARISON.md`](./doc/RUBIK_SOLVER_COMPARISON.md).
 - **Debug logging** (when solve hangs or takes too long): In the browser **Console**, run `localStorage.setItem('DEBUG_IDA_STAR', 'true')`, **reload the page**, then run IDA* again. Console will show `[IDA*]` messages. To disable: `localStorage.removeItem('DEBUG_IDA_STAR')` and reload. Details: [§12.1 in `doc/IDA_STAR_SOLVER.md`](./doc/IDA_STAR_SOLVER.md).
-- **Wall-clock limit**: IDA* stops after **5 minutes** by default (returns no solution and logs a warning). Unlimited: `localStorage.setItem('IDA_STAR_MAX_WALL_MS', '0')`. Prefer **Kociemba** for hard scrambles.
+- **Wall-clock limit**: Full-space IDA* stops after **5 minutes** by default. Random scrambles use phased IDA* instead.
 - **Limitations**: 
-  - Currently under development, may have issues
-  - Can be very slow for states requiring many moves
+  - Phased mode does not guarantee a globally shortest solution
+  - First run builds abstract distance tables; later solves reuse in-memory caches
 
 ### 4. Thistlethwaite Algorithm
 - **Status**: 🚧 Under development
@@ -287,7 +287,7 @@ MIT
 **状态总结：**
 - ✅ **反向移动**：完全功能正常
 - ✅ **Kociemba**：完全功能正常（使用 kociemba-wasm）
-- 🚧 **IDA***：开发中（可能存在问题）
+- **IDA***：支持随机打乱的分阶段 IDA* 搜索；浅层状态仍使用完整空间 IDA*
 - 🚧 **Thistlethwaite**：开发中（可能存在问题）
 
 ### 1. 反向移动（默认）
@@ -304,17 +304,17 @@ MIT
 - **状态**：✅ 完全功能正常并已测试
 
 ### 3. IDA*（迭代加深A*）
-- **状态**：🚧 开发中
+- **状态**：✅ 支持随机打乱（分阶段 IDA*）
 - **速度**：⚡⚡（较慢）
 - **要求**：无
-- **描述**：最优搜索算法，找到最短解路径。使用简单的启发式函数。
+- **描述**：浅层状态使用完整空间 IDA*；随机打乱使用带抽象距离表启发的分阶段 IDA*，不再依赖打乱历史逆序。
 - **实现说明**：详见 [`doc/IDA_STAR_SOLVER.md`](./doc/IDA_STAR_SOLVER.md)（当前逻辑、剪枝与已知局限）。与外部资料（Columbia IDA\*+PDB 报告、[Jai0212](https://github.com/Jai0212/Rubiks-Cube-Solver-Using-IDA-Star) 等）的综合对比与优化方向见 [`doc/RUBIK_SOLVER_COMPARISON.md`](./doc/RUBIK_SOLVER_COMPARISON.md)。
 - **调试日志**（求解很久无结果或需排查时）：浏览器打开**开发者工具 → 控制台**，执行 `localStorage.setItem('DEBUG_IDA_STAR', 'true')` 后**刷新页面**，再选 IDA* 求解，控制台会输出带 `[IDA*]` 的日志；关闭：`localStorage.removeItem('DEBUG_IDA_STAR')` 并刷新。步骤说明见 [`doc/IDA_STAR_SOLVER.md`](./doc/IDA_STAR_SOLVER.md) 中的 **§12.1 调试日志**。
-- **默认 5 分钟总时长上限**：超时自动放弃（控制台有 `[IDA*] 已达总时长上限` 提示）。不限制：`localStorage.setItem('IDA_STAR_MAX_WALL_MS', '0')`。复杂打乱请优先用 **Kociemba**。
-- **使用场景**：需要最优解时，但对于复杂状态可能很慢
+- **默认 5 分钟总时长上限**：完整空间 IDA* 超时自动放弃（控制台有 `[IDA*] 已达总时长上限` 提示）。随机打乱会进入分阶段 IDA*。
+- **使用场景**：需要观察 IDA* 搜索过程，或作为 Kociemba/Thistlethwaite 之外的自研求解路径
 - **限制**：
-  - 当前处于开发中，可能存在问题
-  - 对于需要很多步的状态可能非常慢
+  - 分阶段模式不保证全局最短解
+  - 首次运行需要构建抽象距离表，之后同页内会复用缓存
 
 ### 4. Thistlethwaite 算法
 - **状态**：🚧 开发中

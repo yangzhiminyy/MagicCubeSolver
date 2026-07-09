@@ -5,7 +5,10 @@ import {
   cubeStatesEqual,
   manhattanSums,
 } from './idaStarHelpers'
-import { solveByThistlethwaite as thistlethwaiteSolve } from './thistlethwaite'
+import {
+  solveByPhasedIDAStar,
+  solveByThistlethwaite as thistlethwaiteSolve,
+} from './thistlethwaite'
 import {
   cubieFromCubestring,
   cubieBasedStateToCanonicalCubestring,
@@ -81,7 +84,13 @@ export const IDA_STAR_DEFAULT_MAX_WALL_MS = 300_000
 export const IDA_STAR_MAX_WALL_MS_STORAGE_KEY = 'IDA_STAR_MAX_WALL_MS'
 
 const IDA_STAR_UI_EXACT_DEPTH_LIMIT = 8
-const IDA_STAR_UI_MAX_WALL_MS = 30_000
+const IDA_STAR_UI_EXACT_MAX_WALL_MS = 5_000
+const IDA_STAR_PHASED_UI_TUNING = {
+  maxDepthPerPhase: 20,
+  timeoutMsPerPhase: 60_000,
+  maxNodesPerPhase: 2_000_000,
+  yieldEvery: IDA_STAR_YIELD_EVERY_NODES,
+} as const
 
 const THISTLETHWAITE_UI_TUNING: ThistlethwaiteSearchTuning = {
   bfsMaxNodes: 2_000_000,
@@ -510,39 +519,29 @@ export async function solveCube(
           return []
         }
 
-        if (movesToState && movesToState.length > IDA_STAR_UI_EXACT_DEPTH_LIMIT) {
-          const reverseSolution = solveByReverseMoves(movesToState)
-          if (solutionRestoresState(cubie, reverseSolution)) {
-            console.warn(
-              `IDA* UI：已知打乱长度为 ${movesToState.length}，超过浏览器内纯 IDA* 的实用浅层阈值 ${IDA_STAR_UI_EXACT_DEPTH_LIMIT}；` +
-                '使用打乱历史的逆序解作为兜底。'
-            )
-            return reverseSolution
+        const shouldTryExactIDA =
+          !movesToState || movesToState.length <= IDA_STAR_UI_EXACT_DEPTH_LIMIT
+        if (shouldTryExactIDA) {
+          const idaSolution = await solveByIDAStar(
+            cubie,
+            IDA_STAR_UI_EXACT_DEPTH_LIMIT,
+            IDA_STAR_MAX_NODES,
+            IDA_STAR_YIELD_EVERY_NODES,
+            undefined,
+            IDA_STAR_UI_EXACT_MAX_WALL_MS
+          )
+          if (idaSolution.length > 0 && solutionRestoresState(cubie, idaSolution)) {
+            return idaSolution
           }
         }
 
-        const idaSolution = await solveByIDAStar(
-          cubie,
-          20,
-          IDA_STAR_MAX_NODES,
-          IDA_STAR_YIELD_EVERY_NODES,
-          undefined,
-          IDA_STAR_UI_MAX_WALL_MS
-        )
-        if (idaSolution.length > 0 && solutionRestoresState(cubie, idaSolution)) {
-          return idaSolution
-        }
-
-        if (movesToState && movesToState.length > 0) {
-          const reverseSolution = solveByReverseMoves(movesToState)
-          if (solutionRestoresState(cubie, reverseSolution)) {
-            console.warn('IDA* UI：纯 IDA* 未在预算内完成；使用打乱历史的逆序解作为兜底。')
-            return reverseSolution
-          }
+        const phasedSolution = await solveByPhasedIDAStar(cubie, IDA_STAR_PHASED_UI_TUNING)
+        if (phasedSolution.length > 0 && solutionRestoresState(cubie, phasedSolution)) {
+          return phasedSolution
         }
 
         throw new Error(
-          'IDA* 未在当前深度/时间预算内找到解。复杂状态需要模式库启发式，或使用 Kociemba/Thistlethwaite。'
+          'IDA* 未在当前阶段搜索预算内找到解。请查看控制台阶段日志，或使用 Kociemba/Thistlethwaite。'
         )
       }
 

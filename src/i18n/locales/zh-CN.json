@@ -13,7 +13,7 @@
     "algoReverse": "反向移动（最快，需打乱序列）",
     "algoKociemba": "Kociemba（快速，两阶段算法）",
     "algoThistle": "Thistlethwaite（四阶段算法）",
-    "algoIda": "IDA*（较慢，最优解）🚧 开发中",
+    "algoIda": "IDA*（分阶段搜索）",
     "manualOps": "手动操作",
     "solutionSteps": "求解步骤",
     "totalMoves": "总步数: {{count}}",

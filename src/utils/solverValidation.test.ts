@@ -191,28 +191,55 @@ describe('solver validation diagnostics', () => {
     60_000
   )
 
-  it('cubeSolver dispatcher IDA* restores a known app-style 25-turn scramble via history fallback', async () => {
-    const scramble: Move[] = [
-      'R', "U'", 'L', 'F', "B'", 'D',
-      "R'", 'U', 'F', "L'", 'B', "D'",
-      'R', 'F', "U'", 'L', "B'", 'D',
-      "F'", 'R', "L'", 'U', "D'", 'B', "R'",
-    ]
+  it(
+    'cubeSolver dispatcher IDA* restores a known app-style 25-turn scramble without history fallback',
+    async () => {
+      const scramble: Move[] = [
+        'R', "U'", 'L', 'F', "B'", 'D',
+        "R'", 'U', 'F', "L'", 'B', "D'",
+        'R', 'F', "U'", 'L', "B'", 'D',
+        "F'", 'R', "L'", 'U', "D'", 'B', "R'",
+      ]
 
-    let start = createSolvedCubieBasedCube()
-    for (const move of scramble) {
-      start = applyCubieMove(start, move)
-    }
+      let start = createSolvedCubieBasedCube()
+      for (const move of scramble) {
+        start = applyCubieMove(start, move)
+      }
 
-    const solution = await solveCubeByDispatcher(start, 'ida-star', scramble)
-    expect(solution).toEqual(solveByReverseMoves(scramble))
+      const solution = await solveCubeByDispatcher(start, 'ida-star', scramble)
+      expect(solution).not.toEqual(solveByReverseMoves(scramble))
 
-    let restored = start
-    for (const move of solution) {
-      restored = applyCubieMove(restored, move)
-    }
-    expect(cubieBasedStateToCanonicalCubestring(restored)).toBe(SOLVED_CUBESTRING)
-  })
+      let restored = start
+      for (const move of solution) {
+        restored = applyCubieMove(restored, move)
+      }
+      expect(cubieBasedStateToCanonicalCubestring(restored)).toBe(SOLVED_CUBESTRING)
+    },
+    120_000
+  )
+
+  it(
+    'cubeSolver dispatcher IDA* restores deterministic UI random scrambles without history fallback',
+    async () => {
+      for (const seed of [1, 7, 42]) {
+        const scramble = deterministicAppScramble(seed)
+        let start = createSolvedCubieBasedCube()
+        for (const move of scramble) {
+          start = applyCubieMove(start, move)
+        }
+
+        const solution = await solveCubeByDispatcher(start, 'ida-star', scramble)
+        expect(solution).not.toEqual(solveByReverseMoves(scramble))
+
+        let restored = start
+        for (const move of solution) {
+          restored = applyCubieMove(restored, move)
+        }
+        expect(cubieBasedStateToCanonicalCubestring(restored)).toBe(SOLVED_CUBESTRING)
+      }
+    },
+    120_000
+  )
 
   it('IDA* restores a two-turn cubestring state under local move semantics', async () => {
     const scramble: Move[] = ['R', 'U']
